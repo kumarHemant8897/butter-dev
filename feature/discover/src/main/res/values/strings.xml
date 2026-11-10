@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="discover_eyebrow">Outside your algorithm</string>
+    <string name="discover_title">Find your frequency.</string>
+    <string name="discover_search_hint">Songs, artists, albums, people</string>
+    <string name="discover_section_repeat">The night\'s on repeat</string>
+    <string name="discover_action_top">Top 50</string>
+    <string name="discover_listening">%1$s · %2$s listening</string>
+    <string name="discover_section_longer">Stay a little longer</string>
+    <string name="discover_action_playlists">Playlists</string>
+    <string name="discover_community_favorite">Community favorite</string>
+    <string name="discover_playlist_stats">%1$d songs · %2$s saves</string>
+    <string name="discover_section_voices">Voices you\'ll fall for</string>
+    <string name="discover_action_artists">Artists</string>
+    <string name="discover_section_listeners">Your kind of listeners</string>
+    <string name="discover_action_see_all">See all</string>
+    <string name="discover_listener_match">%1$d%% taste match · %2$d shared artists</string>
+    <string name="discover_follow">Follow</string>
+    <string name="discover_following">Following</string>
+    <string name="discover_section_feeling">Pick a feeling</string>
+    <string name="discover_open">Open %1$s</string>
+</resources>

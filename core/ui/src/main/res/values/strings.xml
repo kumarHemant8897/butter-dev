@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">Try again</string>
+
+    <string name="error_offline_title">You\'re offline</string>
+    <string name="error_offline_message">Check your connection and try again.</string>
+    <string name="error_timeout_title">That took too long</string>
+    <string name="error_timeout_message">The server didn\'t respond in time. Try again in a moment.</string>
+    <string name="error_auth_title">Sign-in problem</string>
+    <string name="error_invalid_credentials">That email and password don\'t match.</string>
+    <string name="error_session_expired">Your session expired. Please sign in again.</string>
+    <string name="error_not_signed_in">Sign in to continue.</string>
+    <string name="error_forbidden_title">Not allowed</string>
+    <string name="error_forbidden_message">You don\'t have access to this.</string>
+    <string name="error_server_title">Something broke on our side</string>
+    <string name="error_server_message">We\'re on it. Try again in a moment.</string>
+    <string name="error_not_found_title">Nothing here</string>
+    <string name="error_not_found_message">This may have been deleted or made private.</string>
+    <string name="error_conflict_title">Already taken</string>
+    <string name="error_conflict_message">Pick something else and try again.</string>
+    <string name="error_validation_title">Check your input</string>
+    <string name="error_validation_message">Some of the details aren\'t valid.</string>
+    <string name="error_backend_not_configured_title">Backend not connected</string>
+    <string name="error_backend_not_configured_message">This build has no Supabase credentials. Add SUPABASE_URL and SUPABASE_ANON_KEY to local.properties and rebuild.</string>
+    <string name="error_unknown_title">Something went wrong</string>
+    <string name="error_unknown_message">Please try again.</string>
+
+    <string name="offline_banner">You\'re offline. Some things may be out of date.</string>
+</resources>

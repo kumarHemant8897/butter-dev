@@ -1,0 +1,21 @@
+# Copy to local.properties (git-ignored) and fill in. Android Studio also writes sdk.dir here.
+#
+# CI: instead of a file, set the same names as environment variables.
+
+# Android SDK location (Android Studio sets this automatically).
+sdk.dir=C\:\\Users\\YOUR_USER\\AppData\\Local\\Android\\Sdk
+
+# ---- dev flavor (devDebug / devRelease) ------------------------------------
+# Supabase Dashboard -> Project Settings -> API.
+# Use the PUBLISHABLE / anon key. Never a secret / service_role key: the build fails if you do.
+SUPABASE_URL=https://YOUR-DEV-PROJECT-REF.supabase.co
+SUPABASE_ANON_KEY=YOUR-DEV-PUBLISHABLE-OR-ANON-KEY
+
+# Local stack from `supabase start`, reached from the Android emulator (debug builds only):
+# SUPABASE_URL=http://10.0.2.2:54321
+# SUPABASE_ANON_KEY=<anon key printed by `supabase start`>
+
+# ---- prod flavor (prodDebug / prodRelease) ---------------------------------
+# Keep production in a separate Supabase project.
+PROD_SUPABASE_URL=
+PROD_SUPABASE_ANON_KEY=

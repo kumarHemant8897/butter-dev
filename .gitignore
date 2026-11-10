@@ -1,0 +1,35 @@
+# Secrets and machine-specific config: NEVER commit
+local.properties
+*.keystore
+*.jks
+keystore.properties
+google-services.json
+.env
+.env.*
+backend/supabase/.env
+backend/supabase/.temp/
+backend/supabase/.branches/
+
+# Gradle
+.gradle/
+build/
+.kotlin/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+.navigation/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local design screenshots pulled from Figma for reference
+.figma-cache/
+
+# Logs
+*.log
