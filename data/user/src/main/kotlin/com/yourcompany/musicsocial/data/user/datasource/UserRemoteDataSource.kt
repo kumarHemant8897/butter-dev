@@ -1,27 +1,53 @@
 package com.yourcompany.musicsocial.data.user.datasource
 
+import com.yourcompany.musicsocial.core.domain.model.ProfileUpdate
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Remote contract for `public.profiles` and `public.follows`.
- * Not implemented yet (Phase 2). Implementations must rely on RLS for authorisation:
- * the client never sends a user id it wants to act as; the server uses auth.uid().
+ * Remote contract for `public.profiles`, `public.follows` and `public.follow_requests`.
+ * Authorisation is Row Level Security: the client never decides who it acts as. Writes name the
+ * signed-in user only because RLS requires the column to equal auth.uid() and rejects anything else.
  */
 interface UserRemoteDataSource {
     suspend fun getProfile(userId: String): AppResult<ProfileDto>
 
     suspend fun getProfileByUsername(username: String): AppResult<ProfileDto>
 
-    suspend fun updateMyProfile(update: ProfileUpdateDto): AppResult<ProfileDto>
+    suspend fun updateMyProfile(update: ProfileUpdate): AppResult<ProfileDto>
 
-    /** Keyset pagination on (username, id). [afterUsername] is null for the first page. */
+    /** Keyset pagination on username: pass the last username of the previous page, or null for the first. */
     suspend fun searchProfiles(query: String, afterUsername: String?, limit: Int): AppResult<List<ProfileDto>>
 
-    suspend fun follow(followeeId: String): AppResult<Unit>
+    suspend fun getSuggestedProfiles(limit: Int): AppResult<List<ProfileDto>>
+
+    suspend fun getFollowingIds(): AppResult<Set<String>>
+
+    suspend fun getRequestedIds(): AppResult<Set<String>>
+
+    /** Follow rows between the signed-in user and [userId], in either direction. */
+    suspend fun getFollowsBetween(userId: String): AppResult<List<FollowEdgeDto>>
+
+    suspend fun isRequestPending(targetId: String): AppResult<Boolean>
+
+    suspend fun insertFollowRequest(targetId: String): AppResult<Unit>
+
+    /** Deletes the request from the signed-in user to [targetId] (cancel). */
+    suspend fun deleteOutgoingRequest(targetId: String): AppResult<Unit>
+
+    /** Deletes the request from [requesterId] to the signed-in user (decline). */
+    suspend fun deleteIncomingRequest(requesterId: String): AppResult<Unit>
+
+    suspend fun getIncomingRequests(): AppResult<List<IncomingRequestDto>>
+
+    /** True when a waiting request was turned into a follow; false when there was none. */
+    suspend fun acceptFollowRequest(requesterId: String): AppResult<Boolean>
 
     suspend fun unfollow(followeeId: String): AppResult<Unit>
+
+    /** The signed-in user's id, or null when signed out. */
+    fun currentUserId(): String?
 }
 
 /** Row of `public.profiles`. Field names mirror backend/supabase/migrations. */
@@ -36,11 +62,15 @@ data class ProfileDto(
     @SerialName("following_count") val followingCount: Int = 0,
 )
 
-/** PATCH body for the caller's own profile. Null fields are omitted (explicitNulls = false). */
 @Serializable
-data class ProfileUpdateDto(
-    val username: String? = null,
-    @SerialName("display_name") val displayName: String? = null,
-    val bio: String? = null,
-    @SerialName("avatar_url") val avatarUrl: String? = null,
+data class FollowEdgeDto(
+    @SerialName("follower_id") val followerId: String,
+    @SerialName("followee_id") val followeeId: String,
+)
+
+/** A request to the signed-in user with the requester's profile embedded. */
+@Serializable
+data class IncomingRequestDto(
+    @SerialName("created_at") val createdAt: String,
+    val requester: ProfileDto,
 )

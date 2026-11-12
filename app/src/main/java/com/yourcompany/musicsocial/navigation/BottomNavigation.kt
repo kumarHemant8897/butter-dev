@@ -1,6 +1,7 @@
 package com.yourcompany.musicsocial.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -9,6 +10,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -20,7 +22,11 @@ import kotlinx.collections.immutable.toImmutableList
 @Composable
 fun AppBottomNavigation(navController: NavHostController, modifier: Modifier = Modifier) {
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val selected = backStackEntry?.destination.currentScreen()
+    val backStack by navController.currentBackStack.collectAsState()
+    val current = backStackEntry?.destination.currentScreen()
+    // Shared screens outside the tab graphs (a chart, a profile, a chat) keep the tab they were opened
+    // from highlighted: the nearest tab screen below them in the back stack.
+    val selected = current ?: backStack.asReversed().firstNotNullOfOrNull { it.destination.currentScreen() }
 
     val labels = Screen.entries.map { stringResource(it.label) }
     val items = remember(labels) {
@@ -32,7 +38,11 @@ fun AppBottomNavigation(navController: NavHostController, modifier: Modifier = M
     BottomNavigationBar(
         items = items,
         selectedIndex = selected?.ordinal ?: -1,
-        onItemSelected = { index -> navController.navigateToTopLevel(Screen.entries[index]) },
+        onItemSelected = { index ->
+            val screen = Screen.entries[index]
+            // On a shared screen, tapping the highlighted tab goes back to that tab's first screen.
+            if (current == null && screen == selected) navController.popToTabStart(screen) else navController.navigateToTopLevel(screen)
+        },
         modifier = modifier,
     )
 }
@@ -41,6 +51,12 @@ internal fun NavDestination?.currentScreen(): Screen? =
     this?.hierarchy?.let { hierarchy ->
         Screen.entries.firstOrNull { screen -> hierarchy.any { it.hasRoute(screen.graphRouteClass) } }
     }
+
+/** Pops shared screens off the stack until [screen]'s start destination is on top. */
+private fun NavController.popToTabStart(screen: Screen) {
+    val tabGraph = graph.findNode(screen.graphRoute) as? NavGraph
+    if (tabGraph == null || !popBackStack(tabGraph.findStartDestination().id, inclusive = false)) navigateToTopLevel(screen)
+}
 
 /**
  * Standard bottom-navigation behaviour:

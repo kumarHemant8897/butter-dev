@@ -32,6 +32,30 @@ data class CatalogRef(
     val externalId: String,
 )
 
+/** An artist as shown on artist chips and artist pages. [imageUrl] is album art: the catalogue has no artist photos. */
+data class ArtistProfile(
+    val id: String,
+    val name: String,
+    val genre: String?,
+    val imageUrl: String?,
+)
+
+/** An artist page: who they are and their songs, most popular first. */
+data class ArtistDetail(
+    val artist: ArtistProfile,
+    val songs: List<Song>,
+)
+
+/** Genre charts the catalogue can provide. [id] is the provider's genre id. */
+enum class ChartGenre(val id: String) {
+    BOLLYWOOD("1263"),
+    ;
+
+    companion object {
+        fun fromId(id: String?): ChartGenre? = entries.firstOrNull { it.id == id }
+    }
+}
+
 data class Playlist(
     val id: String,
     val ownerId: String,
@@ -40,4 +64,10 @@ data class Playlist(
     val coverUrl: String?,
     val isPublic: Boolean,
     val songCount: Int,
+)
+
+/** A playlist with its songs in the order they were added. */
+data class PlaylistDetail(
+    val playlist: Playlist,
+    val songs: List<Song>,
 )

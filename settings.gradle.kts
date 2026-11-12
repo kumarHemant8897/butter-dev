@@ -35,6 +35,7 @@ include(":core:designsystem")
 include(":core:domain")
 include(":core:navigation")
 include(":core:network")
+include(":core:playback")
 include(":core:sample") // TESTING ONLY: hand-written sample content, delete once repositories are real
 include(":core:testing")
 include(":core:ui")
@@ -46,8 +47,10 @@ include(":data:music")
 include(":data:user")
 
 // Features: presentation only (screens, ViewModels, UI state). Features never depend on each other.
+include(":feature:auth")
 include(":feature:chat")
 include(":feature:discover")
 include(":feature:home")
+include(":feature:music")
 include(":feature:player")
 include(":feature:profile")

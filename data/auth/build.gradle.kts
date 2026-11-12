@@ -8,6 +8,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.domain)
     implementation(projects.core.network)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(projects.core.testing)
 }

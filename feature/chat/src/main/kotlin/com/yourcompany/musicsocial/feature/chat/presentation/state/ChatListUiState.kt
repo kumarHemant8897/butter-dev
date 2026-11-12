@@ -1,7 +1,7 @@
 package com.yourcompany.musicsocial.feature.chat.presentation.state
 
 import androidx.compose.runtime.Immutable
-import com.yourcompany.musicsocial.core.domain.model.Song
+import com.yourcompany.musicsocial.core.domain.result.AppError
 
 enum class ChatFilter { ALL, FRIENDS, GROUPS }
 
@@ -10,13 +10,16 @@ enum class ChatFilter { ALL, FRIENDS, GROUPS }
 data class ConversationItem(
     val id: String,
     val title: String,
+    val avatarUrl: String? = null,
+    /** The other person in a direct chat; opens their profile from the conversation header. */
+    val otherUserId: String? = null,
     val preview: String,
     /** The preview is a shared song or playlist: shown with a music note. */
     val previewIsMusic: Boolean,
     val timeLabel: String,
     val unreadCount: Int,
     val isGroup: Boolean,
-    val isOnline: Boolean,
+    val isOnline: Boolean = false,
 )
 
 @Immutable
@@ -25,7 +28,7 @@ data class ChatListUiState(
     val filter: ChatFilter = ChatFilter.ALL,
     val conversations: List<ConversationItem> = emptyList(),
     val totalCount: Int = 0,
-    val onlineFriends: Int = 0,
-    val nowPlaying: Song? = null,
-    val isNowPlayingPaused: Boolean = false,
+    val isLoading: Boolean = true,
+    /** Loading failed and there is nothing to show. A failed background refresh keeps the list. */
+    val error: AppError? = null,
 )

@@ -10,9 +10,9 @@ notifications, moderation) belong in Supabase Edge Functions using the service r
 
 | Contract | Interface | Implementation status |
 |---|---|---|
-| Auth | `AuthRepository` / `AuthRemoteDataSource` | Implemented (email sign-in/up/out, session state). Not exercised against a real project yet; no UI calls it |
-| Music | `MusicRepository` / `MusicRemoteDataSource` | Implemented with Room cache; unit-tested; no UI uses it yet |
-| User | `UserRepository` / `UserRemoteDataSource` | Interfaces and DTOs only (Phase 2) |
+| Auth | `AuthRepository` / `AuthRemoteDataSource` | Implemented and used by the sign-in/sign-up screen: email sign-in, sign-up (username and display name travel as metadata), sign-out, session state. Verified against the local Supabase stack |
+| Music | `MusicRepository` / `MusicRemoteDataSource` | Implemented against the iTunes Search API (India storefront) with a Room cache for song details (never preview URLs). Used by Discover search and the player |
+| User | `UserRepository` / `UserRemoteDataSource` | Implemented: get/update profile, search, suggested people, follow/unfollow. Used by Profile, Edit profile and Discover. Verified against the local stack |
 | Chat | `ChatRepository` / `ChatRemoteDataSource` | Interfaces and DTOs only (Phase 4) |
 
 ## Error contract

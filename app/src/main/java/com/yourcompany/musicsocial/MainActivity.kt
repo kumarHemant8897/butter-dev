@@ -13,7 +13,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yourcompany.musicsocial.core.datastore.AppPreferencesDataSource
 import com.yourcompany.musicsocial.core.datastore.ThemeMode
 import com.yourcompany.musicsocial.core.designsystem.theme.ButterTheme
-import com.yourcompany.musicsocial.navigation.MusicSocialAppShell
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -41,7 +40,7 @@ class MainActivity : ComponentActivity() {
             }
 
             ButterTheme(darkTheme = darkTheme) {
-                MusicSocialAppShell()
+                ButterApp()
             }
         }
     }

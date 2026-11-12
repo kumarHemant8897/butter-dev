@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_eyebrow">Welcome to Butter</string>
+    <string name="auth_title">Your music.\nYour people.</string>
+
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_username">Username</string>
+    <string name="auth_username_hint">You can change it later</string>
+    <string name="auth_display_name">Your name</string>
+
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_sign_up">Create account</string>
+    <string name="auth_switch_to_sign_up">New here? Create an account</string>
+    <string name="auth_switch_to_sign_in">Already have an account? Sign in</string>
+    <string name="auth_password_hint">At least 8 characters</string>
+
+    <string name="auth_notice_confirm_email">Check your inbox and confirm your email, then sign in.</string>
+
+    <string name="auth_error_email_blank">Enter your email</string>
+    <string name="auth_error_email_format">That doesn\'t look like an email address</string>
+    <string name="auth_error_password_blank">Enter your password</string>
+    <string name="auth_error_password_short">Use at least 8 characters</string>
+    <string name="auth_error_password_long">Use at most 72 characters</string>
+    <string name="auth_error_username_short">Use at least 3 characters</string>
+    <string name="auth_error_username_long">Use at most 30 characters</string>
+    <string name="auth_error_username_chars">Use lowercase letters, numbers, dots and underscores</string>
+    <string name="auth_error_username_dots">A dot can\'t start, end or repeat</string>
+    <string name="auth_error_name_blank">Enter your name</string>
+    <string name="auth_error_name_long">Use at most 50 characters</string>
+</resources>

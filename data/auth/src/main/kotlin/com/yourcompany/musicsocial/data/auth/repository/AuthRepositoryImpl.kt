@@ -2,6 +2,7 @@ package com.yourcompany.musicsocial.data.auth.repository
 
 import com.yourcompany.musicsocial.core.common.coroutines.ApplicationScope
 import com.yourcompany.musicsocial.core.domain.model.AuthState
+import com.yourcompany.musicsocial.core.domain.model.SignUpOutcome
 import com.yourcompany.musicsocial.core.domain.repository.AuthRepository
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 import com.yourcompany.musicsocial.data.auth.datasource.AuthRemoteDataSource
@@ -31,8 +32,12 @@ internal class AuthRepositoryImpl @Inject constructor(
     override suspend fun signInWithEmail(email: String, password: String): AppResult<Unit> =
         remote.signInWithEmail(email.trim(), password)
 
-    override suspend fun signUpWithEmail(email: String, password: String): AppResult<Unit> =
-        remote.signUpWithEmail(email.trim(), password)
+    override suspend fun signUpWithEmail(
+        email: String,
+        password: String,
+        username: String,
+        displayName: String,
+    ): AppResult<SignUpOutcome> = remote.signUpWithEmail(email.trim(), password, username.trim(), displayName.trim())
 
     override suspend fun signOut(): AppResult<Unit> = remote.signOut()
 }

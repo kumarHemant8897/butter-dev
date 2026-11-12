@@ -99,10 +99,6 @@ object SampleData {
 
     val feelings: List<String> = listOf("Dream pop", "Indie soul", "After dark", "Electronic", "Lo-fi")
 
-    // ---- Player -----------------------------------------------------------------------------
-
-    val nowPlaying = NowPlaying(song = nightDrive, fromPlaylist = midnightMix, positionMs = 84_000, sharePrompt = eli)
-
     // ---- Chats ------------------------------------------------------------------------------
 
     val onlineUserIds: Set<String> = setOf(eli.id, june.id)
@@ -159,5 +155,4 @@ data class SampleAlbum(val id: String, val title: String, val artistName: String
 data class TrendingSong(val song: Song, val listeners: Int)
 data class FriendListening(val friend: UserSummary, val song: Song)
 data class ListenerMatch(val person: UserSummary, val tasteMatchPercent: Int, val sharedArtists: Int)
-data class NowPlaying(val song: Song, val fromPlaylist: Playlist, val positionMs: Long, val sharePrompt: UserSummary)
 data class LastPlayed(val song: Song, val minutesAgo: Int)

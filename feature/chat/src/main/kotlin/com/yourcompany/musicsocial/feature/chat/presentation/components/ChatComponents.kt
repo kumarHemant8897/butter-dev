@@ -49,7 +49,7 @@ internal fun ConversationRow(item: ConversationItem, onClick: () -> Unit, modifi
         ) {
             UserAvatar(
                 name = item.title,
-                imageUrl = null,
+                imageUrl = item.avatarUrl,
                 size = Dimens.avatarLarge - 8.dp,
                 isOnline = item.isOnline,
                 shape = if (item.isGroup) AppShapes.GroupAvatar else CircleShape,
@@ -102,41 +102,5 @@ internal fun ConversationRow(item: ConversationItem, onClick: () -> Unit, modifi
             }
         }
         Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal).height(1.dp).background(ButterTheme.colors.divider))
-    }
-}
-
-/** Mini player shown above the navigation bar while something is loaded in the player. */
-@Composable
-internal fun NowPlayingDock(
-    title: String,
-    artist: String,
-    tintKey: String,
-    isPlaying: Boolean,
-    onTogglePlay: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)
-            .clip(AppShapes.Card)
-            .background(ButterTheme.colors.card)
-            .border(1.dp, ButterTheme.colors.divider, AppShapes.Card)
-            .padding(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Artwork(null, null, AppShapes.Artwork, ArtworkTint.forKey(tintKey), Modifier.size(40.dp), fallbackIcon = null)
-        Spacer(Modifier.width(Spacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-            Text(artist, style = MaterialTheme.typography.labelMedium, color = ButterTheme.colors.textSecondary, maxLines = 1)
-        }
-        IconButton(onClick = onTogglePlay) {
-            Icon(
-                painterResource(if (isPlaying) AppIcons.Pause else AppIcons.Play),
-                contentDescription = stringResource(if (isPlaying) R.string.chat_pause else R.string.chat_play),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
     }
 }

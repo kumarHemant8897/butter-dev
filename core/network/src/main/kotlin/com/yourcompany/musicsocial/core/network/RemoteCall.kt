@@ -5,6 +5,7 @@ import com.yourcompany.musicsocial.core.common.logging.LogCategory
 import com.yourcompany.musicsocial.core.domain.result.AppError
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.exceptions.BadRequestRestException
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.exceptions.NotFoundRestException
@@ -15,6 +16,12 @@ import kotlinx.coroutines.TimeoutCancellationException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import kotlin.coroutines.cancellation.CancellationException
+
+/** Thrown inside a [call] block when the operation needs a signed-in user and there is none. */
+class NotSignedInException : IllegalStateException("No signed-in user")
+
+/** The signed-in user's id, or throws [NotSignedInException] (turned into AppError.Auth.NotSignedIn by [call]). */
+fun SupabaseClient.requireUserId(): String = auth.currentUserOrNull()?.id ?: throw NotSignedInException()
 
 /**
  * Runs a remote operation and converts every expected failure into [AppResult.Failure].
@@ -48,6 +55,7 @@ suspend inline fun <T> SupabaseClientProvider.call(
 
 /** Maps Supabase/Ktor/IO exceptions to [AppError]. Order matters: most specific first. */
 fun Throwable.toAppError(): AppError = when (this) {
+    is NotSignedInException -> AppError.Auth.NotSignedIn
     is HttpRequestTimeoutException, is SocketTimeoutException -> AppError.Network.Timeout
     is IOException -> AppError.Network.Unavailable
     is HttpRequestException -> when (cause) {
@@ -61,7 +69,8 @@ fun Throwable.toAppError(): AppError = when (this) {
     else -> AppError.Unknown
 }
 
-internal fun Int.toAppError(): AppError = when (this) {
+/** Maps an HTTP status code to the matching [AppError]. */
+fun Int.toAppError(): AppError = when (this) {
     401 -> AppError.Auth.SessionExpired
     403 -> AppError.Auth.Forbidden
     404 -> AppError.NotFound

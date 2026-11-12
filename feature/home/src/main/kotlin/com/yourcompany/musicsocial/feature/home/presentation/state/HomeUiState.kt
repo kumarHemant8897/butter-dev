@@ -1,36 +1,30 @@
 package com.yourcompany.musicsocial.feature.home.presentation.state
 
 import androidx.compose.runtime.Immutable
-import com.yourcompany.musicsocial.core.domain.model.Playlist
 import com.yourcompany.musicsocial.core.domain.model.Song
-import com.yourcompany.musicsocial.core.sample.FriendListening
-import com.yourcompany.musicsocial.core.sample.SampleAlbum
-import com.yourcompany.musicsocial.core.sample.TrendingSong
+import com.yourcompany.musicsocial.core.domain.result.AppError
 
 enum class TimeOfDay { MORNING, AFTERNOON, EVENING, NIGHT }
 
 @Immutable
 data class HomeUiState(
-    val firstName: String,
+    /** Null while unknown (loading, or the profile could not be read). */
+    val firstName: String?,
     val timeOfDay: TimeOfDay,
-    val isBackendConfigured: Boolean,
     val isOffline: Boolean,
-    val content: HomeContent,
+    /** Apple Music's current top songs in India. */
+    val chart: ChartState = ChartState.Loading,
+    /** Songs started in this session, most recent first. */
+    val recentlyPlayed: List<Song> = emptyList(),
+    /** Id of the song loaded in the player, to highlight its row and show pause. */
+    val activeSongId: String? = null,
+    val isActiveSongPlaying: Boolean = false,
 )
 
-/** What the Home feed shows. Filled from SampleData until the feed repository exists. */
-@Immutable
-data class HomeContent(
-    val recentlyPlayed: List<Song>,
-    val recommendedAlbums: List<SampleAlbum>,
-    val pickedForYou: Song?,
-    val trending: TrendingSong?,
-    val friendsListening: List<FriendListening>,
-    val sharedWithYou: SharedWithYou?,
-    val madeForYou: Playlist?,
-    /** True while content comes from SampleData, so the screen can say so. */
-    val isSample: Boolean,
-)
+sealed interface ChartState {
+    data object Loading : ChartState
 
-@Immutable
-data class SharedWithYou(val senderName: String, val song: Song, val quote: String, val minutesAgo: Int)
+    data class Content(val songs: List<Song>) : ChartState
+
+    data class Error(val error: AppError) : ChartState
+}

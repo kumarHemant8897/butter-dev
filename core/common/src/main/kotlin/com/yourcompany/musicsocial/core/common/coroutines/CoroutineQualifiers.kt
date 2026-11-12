@@ -12,6 +12,11 @@ annotation class IoDispatcher
 @Retention(AnnotationRetention.BINARY)
 annotation class DefaultDispatcher
 
+/** The main thread. Needed by code that must touch Android objects such as the media player. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class MainDispatcher
+
 /**
  * Process-wide scope for work that must outlive a screen (e.g. flushing a message outbox).
  * Uses a SupervisorJob so one failing child does not cancel the others.

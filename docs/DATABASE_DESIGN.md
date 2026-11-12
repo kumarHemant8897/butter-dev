@@ -1,8 +1,10 @@
 # Database design (Supabase / PostgreSQL)
 
-Implemented as migrations in `backend/supabase/migrations/`. All migrations plus an RLS test script were applied successfully
-on PostgreSQL 17 using a minimal stand-in for Supabase's `auth` schema (see `backend/supabase/tests/`). They have **not** yet
-been applied to a real Supabase project.
+Implemented as migrations in `backend/supabase/migrations/` (6 files; the 6th, `hardening`, came from Supabase's advisors).
+They were applied to a **local Supabase stack** (`supabase start`), and `backend/supabase/tests/rls_smoke_test.sql` passed there.
+Supabase's security advisor reports only 3 intentional warnings: `create_direct_conversation`, `create_group_conversation` and
+`is_conversation_member` must be callable by signed-in users. The migrations have **not** yet been applied to the hosted
+`butter-dev` project.
 
 ## Conventions
 

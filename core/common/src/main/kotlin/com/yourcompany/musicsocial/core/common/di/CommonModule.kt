@@ -3,6 +3,7 @@ package com.yourcompany.musicsocial.core.common.di
 import com.yourcompany.musicsocial.core.common.coroutines.ApplicationScope
 import com.yourcompany.musicsocial.core.common.coroutines.DefaultDispatcher
 import com.yourcompany.musicsocial.core.common.coroutines.IoDispatcher
+import com.yourcompany.musicsocial.core.common.coroutines.MainDispatcher
 import com.yourcompany.musicsocial.core.common.logging.AppLogger
 import com.yourcompany.musicsocial.core.common.logging.CrashReporter
 import com.yourcompany.musicsocial.core.common.logging.NoOpCrashReporter
@@ -54,6 +55,10 @@ internal object CoroutinesModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @MainDispatcher
+    fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main.immediate
 
     @Provides
     @DefaultDispatcher

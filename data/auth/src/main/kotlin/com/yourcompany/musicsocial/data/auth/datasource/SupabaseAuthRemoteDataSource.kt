@@ -2,6 +2,7 @@ package com.yourcompany.musicsocial.data.auth.datasource
 
 import com.yourcompany.musicsocial.core.common.logging.AppLogger
 import com.yourcompany.musicsocial.core.domain.model.AuthState
+import com.yourcompany.musicsocial.core.domain.model.SignUpOutcome
 import com.yourcompany.musicsocial.core.domain.result.AppError
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 import com.yourcompany.musicsocial.core.network.SupabaseClientProvider
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 internal class SupabaseAuthRemoteDataSource @Inject constructor(
@@ -40,12 +43,24 @@ internal class SupabaseAuthRemoteDataSource @Inject constructor(
             }
         }
 
-    override suspend fun signUpWithEmail(email: String, password: String): AppResult<Unit> =
+    override suspend fun signUpWithEmail(
+        email: String,
+        password: String,
+        username: String,
+        displayName: String,
+    ): AppResult<SignUpOutcome> =
         supabase.call(logger, "auth.signUpWithEmail", ::mapAuthError) { client ->
             client.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
+                // Read by the handle_new_user() trigger to create the profile.
+                data = buildJsonObject {
+                    put("username", username)
+                    put("display_name", displayName)
+                }
             }
+            // With email confirmation off the SDK already holds a session; with it on, it does not.
+            if (client.auth.currentSessionOrNull() != null) SignUpOutcome.SIGNED_IN else SignUpOutcome.EMAIL_CONFIRMATION_REQUIRED
         }
 
     override suspend fun signOut(): AppResult<Unit> =

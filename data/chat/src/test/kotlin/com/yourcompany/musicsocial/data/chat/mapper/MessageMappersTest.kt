@@ -69,3 +69,56 @@ class MessageMappersTest {
         share = share,
     )
 }
+
+class ConversationRowMappingTest {
+
+    private fun row(
+        type: String = "direct",
+        lastAt: String? = "2026-11-11T10:00:00.5+00:00",
+        kind: String? = "text",
+        body: String? = "hey",
+    ) = com.yourcompany.musicsocial.data.chat.datasource.ConversationRowDto(
+        id = "c1",
+        type = type,
+        lastMessageAt = lastAt,
+        updatedAt = "2026-11-10T09:00:00+00:00",
+        otherUserId = "u2",
+        otherUsername = "luna.waves",
+        otherDisplayName = "Luna Waves",
+        lastSenderId = if (kind == null) null else "u2",
+        lastKind = kind,
+        lastBody = body,
+        lastDeleted = false,
+        unreadCount = 2,
+    )
+
+    @Test
+    fun `a direct chat is named by the other person and keeps the latest message`() {
+        val summary = row().toDomainOrNull()!!
+
+        assertEquals("Luna Waves", summary.otherUser?.displayName)
+        assertEquals(MessageContent.Text("hey"), summary.lastMessage?.content)
+        assertEquals(2, summary.unreadCount)
+        assertEquals(Instant.parse("2026-11-11T10:00:00.5Z"), summary.updatedAt)
+    }
+
+    @Test
+    fun `a chat without messages uses its creation time and has no preview`() {
+        val summary = row(lastAt = null, kind = null, body = null).toDomainOrNull()!!
+
+        assertNull(summary.lastMessage)
+        assertEquals(Instant.parse("2026-11-10T09:00:00Z"), summary.updatedAt)
+    }
+
+    @Test
+    fun `unknown conversation types are skipped`() {
+        assertNull(row(type = "broadcast").toDomainOrNull())
+    }
+
+    @Test
+    fun `realtime timestamps with a short offset or a space are read`() {
+        val dto = MessageDto("m1", "c1", "u1", "k1", MessageKind.TEXT, "hi", createdAt = "2026-11-11 10:00:00.123+00")
+
+        assertEquals(Instant.parse("2026-11-11T10:00:00.123Z"), dto.toDomainOrNull(emptyList())!!.sentAt)
+    }
+}

@@ -38,7 +38,8 @@ internal fun Song.toEntity(cachedAtEpochMs: Long): CachedSongEntity = CachedSong
     albumTitle = albumTitle,
     artworkUrl = artworkUrl,
     durationMs = durationMs,
-    previewUrl = previewUrl,
+    // Never stored: preview audio may be streamed but not saved or cached, so the address is fetched fresh when played.
+    previewUrl = null,
     externalUrl = externalUrl,
     catalogProvider = catalogRef?.provider,
     catalogExternalId = catalogRef?.externalId,

@@ -45,14 +45,24 @@ begin
   exception when check_violation then null;
   end;
 
-  -- Following updates both counters; following as someone else is rejected.
-  insert into public.follows (follower_id, followee_id) values ('11111111-1111-4111-8111-111111111111', '33333333-3333-4333-8333-333333333333');
+  -- Following is by request only: a direct follow is refused, a request is allowed.
   begin
-    insert into public.follows (follower_id, followee_id) values ('22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333');
-    raise exception 'RLS allowed following on behalf of another user';
+    insert into public.follows (follower_id, followee_id) values ('11111111-1111-4111-8111-111111111111', '33333333-3333-4333-8333-333333333333');
+    raise exception 'client was able to follow without a request';
   exception when insufficient_privilege then null;
   end;
+  insert into public.follow_requests (requester_id, target_id) values ('11111111-1111-4111-8111-111111111111', '33333333-3333-4333-8333-333333333333');
 end $$;
+
+-- June accepts, which creates the follow and updates both counters.
+select set_config('request.jwt.claim.sub', '33333333-3333-4333-8333-333333333333', false);
+do $$
+begin
+  if not public.accept_follow_request('11111111-1111-4111-8111-111111111111') then
+    raise exception 'accepting a pending request failed';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
 
 reset role;
 do $$

@@ -3,8 +3,8 @@
 A music-first social app for Android: listen, follow friends, swap songs in chat and find new music together.
 Built with Kotlin, Jetpack Compose and Supabase. Visual language: **Afterglow** (dark, violet for action, lime for presence).
 
-> Status: **Phase 1 (foundation)**. The app builds and runs with all five screens, but screens show clearly
-> labelled **sample data**. Sign-in, real profiles, playback and chat are not implemented yet.
+> Status: **Phase 2**. Sign-up, sign-in, real profiles, Edit profile and follow/unfollow work against a local Supabase stack. Home, Discover
+> content, Player and Chats still show clearly labelled **sample data**; playback and chat are not implemented yet.
 > See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works.
 
 ## Planned features

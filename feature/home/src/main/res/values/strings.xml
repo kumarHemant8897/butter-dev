@@ -5,27 +5,20 @@
     <string name="home_eyebrow_evening">Your evening starts here</string>
     <string name="home_eyebrow_night">Your night starts here</string>
     <string name="home_greeting">Hey, %1$s.</string>
-    <string name="home_notifications">Notifications</string>
+    <string name="home_greeting_unknown">Hey, there.</string>
     <string name="home_search_hint">Search your next obsession</string>
+    <string name="home_open_search">Open search</string>
 
     <string name="home_section_orbit">Back in your orbit</string>
-    <string name="home_action_history">History</string>
+    <string name="home_section_trending">Trending in India</string>
+    <string name="home_action_see_all">See all</string>
     <string name="home_section_speed">A little more your speed</string>
-    <string name="home_action_for_you">For you</string>
-    <string name="home_album_subtitle">Album · %1$s</string>
-    <string name="home_picked_subtitle">%1$s · A song picked just for you</string>
-    <string name="home_section_repeat">On repeat everywhere</string>
-    <string name="home_action_trending">Trending</string>
-    <string name="home_listening_tonight">%1$s · %2$s listening tonight</string>
-    <string name="home_section_company">In good company</string>
-    <string name="home_action_live">Live</string>
-    <string name="home_section_passed">Passed your way</string>
-    <string name="home_action_open_chats">Open chats</string>
-    <string name="home_shared_subtitle">%1$s sent %2$s · %3$d min ago</string>
-    <string name="home_section_after_hours">Made for your after hours</string>
-    <string name="home_mix_subtitle">%1$d songs · %2$s</string>
+    <string name="home_rank_card">#%1$d · %2$s</string>
 
-    <string name="home_play">Play %1$s</string>
-    <string name="home_open">Open %1$s</string>
-    <string name="home_sample_notice">Sample content for testing. Real activity appears once the backend is connected.</string>
+    <string name="home_play">Play a preview of %1$s</string>
+    <string name="home_pause">Pause %1$s</string>
+    <string name="home_open_apple_music">Open %1$s in Apple Music</string>
+    <string name="home_chart_empty">The chart is empty right now. Try again later.</string>
+    <string name="home_retry">Try again</string>
+    <string name="home_preview_credit">30-second previews provided courtesy of iTunes. Listen to the full songs in Apple Music.</string>
 </resources>

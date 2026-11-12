@@ -95,6 +95,7 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.navigation)
     implementation(projects.core.network)
+    implementation(projects.core.playback)
     implementation(projects.core.ui)
 
     // Data modules are wired here and only here: features see repository interfaces, never these.
@@ -103,16 +104,20 @@ dependencies {
     implementation(projects.data.music)
     implementation(projects.data.user)
 
+    implementation(projects.feature.auth)
     implementation(projects.feature.chat)
     implementation(projects.feature.discover)
     implementation(projects.feature.home)
+    implementation(projects.feature.music)
     implementation(projects.feature.player)
     implementation(projects.feature.profile)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.coil.compose)

@@ -2,17 +2,29 @@
 <resources>
     <string name="chat_eyebrow">Good music travels</string>
     <string name="chat_title">Your people.</string>
-    <string name="chat_new">New conversation</string>
+    <string name="chat_new">Find someone to message</string>
     <string name="chat_search_hint">Search conversations</string>
     <string name="chat_filter_all">All</string>
     <string name="chat_filter_friends">Friends</string>
     <string name="chat_filter_groups">Groups</string>
-    <string name="chat_friends_online">%1$d friends online</string>
     <string name="chat_unread">%1$d unread</string>
-    <string name="chat_empty_title">No conversations yet</string>
-    <string name="chat_empty_message">Message a friend or send them a song. Your chats will show up here.</string>
     <string name="chat_no_results_title">No matches</string>
     <string name="chat_no_results_message">Try another name.</string>
-    <string name="chat_pause">Pause</string>
-    <string name="chat_play">Play</string>
+
+    <string name="chat_find_people_title">Find your people</string>
+    <string name="chat_find_people_message">Search for friends, follow them, and once they accept you can message each other here.</string>
+    <string name="chat_find_people_action">Find your people</string>
+
+    <string name="chat_back">Back</string>
+    <string name="chat_open_profile">Open %1$s\'s profile</string>
+    <string name="chat_message_hint">Message</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_empty_thread">Say hi to %1$s. Messages appear here for both of you.</string>
+    <string name="chat_sending">Sending…</string>
+    <string name="chat_failed">Not sent. Tap to try again.</string>
+    <string name="chat_seen">Seen</string>
+    <string name="chat_deleted">Message deleted</string>
+    <string name="chat_shared_song">Shared a song</string>
+    <string name="chat_shared_playlist">Shared a playlist</string>
+    <string name="chat_too_long">Messages can be up to 4000 characters.</string>
 </resources>

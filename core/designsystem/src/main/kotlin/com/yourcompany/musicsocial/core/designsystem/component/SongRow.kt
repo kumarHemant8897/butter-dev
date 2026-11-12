@@ -49,6 +49,8 @@ fun SongRow(
     isActive: Boolean = false,
     artworkShape: androidx.compose.ui.graphics.Shape = AppShapes.Artwork,
     action: RowAction? = null,
+    /** Shown before [action]; used for a quiet extra such as "Open in Apple Music". */
+    secondaryAction: RowAction? = null,
     onClick: (() -> Unit)? = null,
 ) {
     Row(
@@ -84,6 +86,16 @@ fun SongRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (secondaryAction != null) {
+            IconButton(onClick = secondaryAction.onClick, modifier = Modifier.size(Dimens.minTouchTarget)) {
+                Icon(
+                    painterResource(secondaryAction.icon),
+                    contentDescription = secondaryAction.contentDescription,
+                    tint = secondaryAction.tint ?: ButterTheme.colors.textSecondary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
         if (action != null) {
             IconButton(onClick = action.onClick, modifier = Modifier.size(Dimens.minTouchTarget)) {

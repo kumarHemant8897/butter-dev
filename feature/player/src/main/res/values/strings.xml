@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="player_playing_from">Playing from your mix</string>
-    <string name="player_collapse">Collapse player</string>
-    <string name="player_more">More options</string>
+    <string name="player_eyebrow">Now playing</string>
+    <string name="player_idle_title">Nothing playing yet</string>
+    <string name="player_idle_message">Search for a song in Discover and tap play. You\'ll hear a 30-second preview here.</string>
+
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
+    <string name="player_loading">Loading</string>
     <string name="player_previous">Previous song</string>
     <string name="player_next">Next song</string>
     <string name="player_shuffle">Shuffle</string>
     <string name="player_repeat">Repeat</string>
-    <string name="player_like">Like</string>
-    <string name="player_unlike">Remove like</string>
-    <string name="player_share">Share song</string>
-    <string name="player_queue">Queue</string>
-    <string name="player_progress">Playback position</string>
-    <string name="player_output">Listening on this phone</string>
-    <string name="player_share_title">Some songs are better shared.</string>
-    <string name="player_share_subtitle">Send this one to %1$s or a friend</string>
-    <string name="player_send">Send song</string>
+    <string name="player_progress">Preview position</string>
+
+    <string name="player_add_to_playlist">Add to a playlist</string>
+    <string name="player_like">Like this song</string>
+    <string name="player_unlike">Remove from liked songs</string>
+    <string name="player_save">Save this song</string>
+    <string name="player_unsave">Remove from saved songs</string>
+    <string name="player_preview_notice">30-second preview</string>
+    <string name="player_full_song_title">Want the full song?</string>
+    <string name="player_credit">Preview provided courtesy of iTunes. The full song is in Apple Music.</string>
+    <string name="player_open_apple_music">Open in Apple Music</string>
 </resources>

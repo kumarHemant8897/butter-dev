@@ -1,49 +1,34 @@
 package com.yourcompany.musicsocial.data.music.datasource
 
-import com.yourcompany.musicsocial.core.common.logging.AppLogger
-import com.yourcompany.musicsocial.core.domain.result.AppError
 import com.yourcompany.musicsocial.core.domain.result.AppResult
-import com.yourcompany.musicsocial.core.domain.result.flatMap
-import com.yourcompany.musicsocial.core.network.SupabaseClientProvider
-import com.yourcompany.musicsocial.core.network.call
-import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.query.Columns
-import javax.inject.Inject
 
-/** Remote access to the music catalogue. */
+/**
+ * Where catalogue data comes from. Today that is the iTunes Search API ([ItunesMusicRemoteDataSource]);
+ * a licensed streaming provider would be another implementation of this interface.
+ */
 internal interface MusicRemoteDataSource {
+    /** [songId] is the app's id for a song, e.g. "itunes:1635014240". */
     suspend fun getSong(songId: String): AppResult<SongDto>
 
-    /** Offset-based: search results are ranked, not a live feed, and users rarely page deeply. */
+    /**
+     * Offset-based: search results are ranked, not a live feed, and people rarely page deeply.
+     * Implementations that cannot skip rows server-side fetch more and drop the first [offset].
+     */
     suspend fun searchSongs(query: String, offset: Int, limit: Int): AppResult<List<SongDto>>
+
+    suspend fun getPreviewUrl(songId: String): AppResult<String>
+
+    /** The current top songs chart for the storefront, in chart order. */
+    suspend fun getTopSongs(limit: Int): AppResult<List<SongDto>>
+
+    /** The current top songs of one genre ([genreId] is the provider's genre id), in chart order. */
+    suspend fun getGenreChart(genreId: String, limit: Int): AppResult<List<SongDto>>
+
+    /** Names and genres for [artistIds] (app ids such as "itunes-artist:123"), in the given order. */
+    suspend fun getArtists(artistIds: List<String>): AppResult<List<ArtistInfoDto>>
+
+    /** One artist and their most popular songs. */
+    suspend fun getArtistWithSongs(artistId: String, limit: Int): AppResult<Pair<ArtistInfoDto, List<SongDto>>>
 }
 
-internal class SupabaseMusicRemoteDataSource @Inject constructor(
-    private val supabase: SupabaseClientProvider,
-    private val logger: AppLogger,
-) : MusicRemoteDataSource {
-
-    override suspend fun getSong(songId: String): AppResult<SongDto> =
-        supabase.call(logger, "songs.getSong") { client ->
-            client.from(TABLE).select(Columns.raw(SONG_COLUMNS)) {
-                filter { eq("id", songId) }
-            }.decodeSingleOrNull<SongDto>()
-        }.flatMap { dto -> dto?.let { AppResult.Success(it) } ?: AppResult.Failure(AppError.NotFound) }
-
-    override suspend fun searchSongs(query: String, offset: Int, limit: Int): AppResult<List<SongDto>> =
-        supabase.call(logger, "songs.search") { client ->
-            client.from(TABLE).select(Columns.raw(SONG_COLUMNS)) {
-                filter { ilike("title", "%${escapeLike(query)}%") }
-                order("title", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
-                range(offset.toLong(), (offset + limit - 1).toLong())
-            }.decodeList<SongDto>()
-        }
-
-    private companion object {
-        const val TABLE = "songs"
-
-        /** Escapes LIKE wildcards so user input is matched literally. */
-        fun escapeLike(input: String): String =
-            input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    }
-}
+internal data class ArtistInfoDto(val id: String, val name: String, val genre: String?)

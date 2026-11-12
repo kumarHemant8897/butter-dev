@@ -1,6 +1,7 @@
 package com.yourcompany.musicsocial.data.auth.datasource
 
 import com.yourcompany.musicsocial.core.domain.model.AuthState
+import com.yourcompany.musicsocial.core.domain.model.SignUpOutcome
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 import kotlinx.coroutines.flow.Flow
 
@@ -16,7 +17,12 @@ interface AuthRemoteDataSource {
 
     suspend fun signInWithEmail(email: String, password: String): AppResult<Unit>
 
-    suspend fun signUpWithEmail(email: String, password: String): AppResult<Unit>
+    suspend fun signUpWithEmail(
+        email: String,
+        password: String,
+        username: String,
+        displayName: String,
+    ): AppResult<SignUpOutcome>
 
     suspend fun signOut(): AppResult<Unit>
 }

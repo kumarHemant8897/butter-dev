@@ -30,8 +30,3 @@ internal data class ArtistDto(
     val name: String,
     @SerialName("image_url") val imageUrl: String? = null,
 )
-
-/** PostgREST select with a resource embedding of the song_artists join table. */
-internal const val SONG_COLUMNS =
-    "id,title,album_title,artwork_url,duration_ms,preview_url,external_url,catalog_provider,catalog_external_id," +
-        "song_artists(position,artist:artists(id,name,image_url))"

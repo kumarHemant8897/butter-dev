@@ -33,3 +33,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test builds shared by hand; never commit APKs.
+/dist/
+# Local Gradle output captured while building.
+*-log.txt
+/log.txt

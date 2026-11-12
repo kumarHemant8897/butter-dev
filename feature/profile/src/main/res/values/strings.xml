@@ -1,11 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="profile_eyebrow">Your profile</string>
-    <string name="profile_settings">Settings</string>
-    <string name="profile_followers">followers</string>
+    <plurals name="profile_followers">
+        <item quantity="one">follower</item>
+        <item quantity="other">followers</item>
+    </plurals>
     <string name="profile_following">following</string>
     <string name="profile_edit">Edit profile</string>
-    <string name="profile_share">Share profile</string>
+    <string name="profile_sign_out">Sign out</string>
+    <string name="profile_back">Back</string>
+    <string name="profile_save">Save</string>
+
+    <string name="profile_eyebrow_other">Listener</string>
+    <string name="profile_section_playlists">Playlists</string>
+    <string name="profile_new_playlist">New</string>
+    <string name="profile_playlists_empty_own">Make a playlist, then add songs to it from the player.</string>
+    <string name="profile_playlist_private">only you</string>
+    <plurals name="profile_playlist_songs">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <string name="profile_section_liked">Liked songs</string>
+    <string name="profile_section_saved">Saved songs</string>
+    <string name="profile_liked_empty_own">Tap the heart on the player to like a song. Your followers see your likes here.</string>
+    <string name="profile_saved_empty_own">Tap save on the player to keep a song for later.</string>
+    <string name="profile_liked_empty_other">No liked songs yet.</string>
+    <string name="profile_saved_empty_other">No saved songs yet.</string>
+    <string name="profile_play">Play a preview of %1$s</string>
+    <string name="profile_pause">Pause %1$s</string>
+    <string name="profile_open_apple_music">Open %1$s in Apple Music</string>
+    <string name="profile_preview_credit">30-second previews provided courtesy of iTunes. Listen to the full songs in Apple Music.</string>
+
+    <string name="profile_requests">Follow requests</string>
+    <plurals name="profile_requests_waiting">
+        <item quantity="one">%1$d person wants to follow you</item>
+        <item quantity="other">%1$d people want to follow you</item>
+    </plurals>
+    <string name="profile_requests_none">No requests waiting</string>
+    <string name="profile_requests_empty_title">No requests right now</string>
+    <string name="profile_requests_empty_message">When someone asks to follow you, they show up here for you to accept or decline.</string>
+    <string name="profile_accept">Accept</string>
+    <string name="profile_decline">Decline</string>
+    <string name="profile_find_people">Find people</string>
+
+    <string name="profile_follow">Follow</string>
+    <string name="profile_follow_back">Follow back</string>
+    <string name="profile_requested">Requested</string>
+    <string name="profile_following_button">Following</string>
+    <string name="profile_message">Message</string>
+    <string name="profile_follows_you">Follows you</string>
+    <string name="profile_private_title">Follow to see their music</string>
+    <string name="profile_private_message">%1$s\'s liked and saved songs are visible to followers they\'ve accepted.</string>
+    <string name="profile_requested_title">Request sent</string>
+    <string name="profile_requested_message">You\'ll see %1$s\'s music once they accept. You can message each other after that too.</string>
+    <string name="profile_retry">Try again</string>
+
+    <plurals name="people_handle_followers">
+        <item quantity="one">@%1$s · %2$s follower</item>
+        <item quantity="other">@%1$s · %2$s followers</item>
+    </plurals>
+    <string name="people_title">Find your people</string>
+    <string name="people_search_hint">Search by name or @username</string>
+    <string name="people_suggested">New on Butter</string>
+    <string name="people_results">People</string>
+    <string name="people_empty_title">No one found</string>
+    <string name="people_empty_message">Check the spelling, or ask your friend for their @username.</string>
+    <string name="people_nobody_title">No one else is here yet</string>
+    <string name="people_nobody_message">Invite a friend to Butter. Once they sign up you can find them here.</string>
+
     <string name="profile_section_rotation">Always in rotation</string>
     <string name="profile_action_artists">Artists</string>
     <string name="profile_section_songs">Songs that say me</string>
@@ -20,6 +82,17 @@
     <string name="profile_unlike">Remove %1$s from favorites</string>
     <string name="profile_open">Open %1$s</string>
     <string name="profile_history">Listening history</string>
-    <string name="profile_signed_out">You\'re not signed in. Sign-in arrives in the next phase; this profile is sample content.</string>
-    <string name="profile_sample_notice">Sample profile for testing. Your real profile loads once accounts are connected.</string>
+
+    <string name="profile_field_name">Your name</string>
+    <string name="profile_field_username">Username</string>
+    <string name="profile_field_bio">Bio</string>
+    <string name="profile_bio_count">%1$d / %2$d</string>
+    <string name="profile_error_name_blank">Enter your name</string>
+    <string name="profile_error_name_long">Use at most 50 characters</string>
+    <string name="profile_error_username_short">Use at least 3 characters</string>
+    <string name="profile_error_username_long">Use at most 30 characters</string>
+    <string name="profile_error_username_chars">Use lowercase letters, numbers, dots and underscores</string>
+    <string name="profile_error_username_dots">A dot can\'t start, end or repeat</string>
+    <string name="profile_error_username_taken">That username is taken</string>
+    <string name="profile_error_bio_long">Use at most 160 characters</string>
 </resources>

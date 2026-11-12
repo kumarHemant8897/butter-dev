@@ -9,7 +9,13 @@ data class UserProfile(
     val avatarUrl: String?,
     val followerCount: Int,
     val followingCount: Int,
-)
+) {
+    companion object {
+        /** Match the profiles_display_name_length and profiles_bio_length CHECK constraints. */
+        const val DISPLAY_NAME_MAX_LENGTH = 50
+        const val BIO_MAX_LENGTH = 160
+    }
+}
 
 /** Compact user reference used inside chat members, message senders and song shares. */
 data class UserSummary(

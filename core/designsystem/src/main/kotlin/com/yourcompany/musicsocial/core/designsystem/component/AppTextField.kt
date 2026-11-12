@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
@@ -95,6 +96,8 @@ fun SearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     onSearch: () -> Unit = {},
+    /** Pass one and call requestFocus() to open the screen with the keyboard ready. */
+    focusRequester: androidx.compose.ui.focus.FocusRequester? = null,
 ) {
     val secondary = ButterTheme.colors.textSecondary
     Row(
@@ -121,7 +124,9 @@ fun SearchField(
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
             )
         }
     }
