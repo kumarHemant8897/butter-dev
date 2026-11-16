@@ -9,7 +9,14 @@ import com.yourcompany.musicsocial.core.domain.model.DeliveryStatus
 import com.yourcompany.musicsocial.core.domain.model.Message
 import com.yourcompany.musicsocial.core.domain.model.MessageContent
 import com.yourcompany.musicsocial.core.domain.model.PageRequest
+import com.yourcompany.musicsocial.core.domain.model.UserSummary
+import com.yourcompany.musicsocial.core.domain.result.getOrNull
+import com.yourcompany.musicsocial.core.domain.playback.PlaybackController
 import com.yourcompany.musicsocial.core.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import com.yourcompany.musicsocial.core.domain.repository.ChatRepository
 import com.yourcompany.musicsocial.core.domain.result.AppError
 import com.yourcompany.musicsocial.core.domain.result.AppResult
@@ -37,6 +44,8 @@ data class ThreadMessage(
     val content: MessageContent,
     val sentAt: java.time.Instant,
     val status: DeliveryStatus,
+    /** Group chats: who wrote someone else's message. */
+    val senderId: String? = null,
 )
 
 @Immutable
@@ -49,7 +58,18 @@ data class ConversationUiState(
     val isLoading: Boolean = true,
     val loadError: AppError? = null,
     val sendError: AppError? = null,
-)
+    val isGroup: Boolean = false,
+    /** Group chats: everyone in the group, including the signed-in user. */
+    val members: List<UserSummary> = emptyList(),
+    val myId: String? = null,
+    val isMembersOpen: Boolean = false,
+    val isConfirmingLeave: Boolean = false,
+    /** The user left the group; the screen goes back. */
+    val hasLeft: Boolean = false,
+) {
+    /** First name of a member, for the line above their messages in a group. */
+    fun senderName(userId: String?): String? = members.firstOrNull { it.id == userId }?.displayName?.substringBefore(' ')
+}
 
 /**
  * One conversation. History loads once; new messages arrive through Realtime. Because Realtime can
@@ -65,8 +85,26 @@ class ConversationViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val chatRepository: ChatRepository,
     private val sendTextMessage: SendTextMessageUseCase,
+    private val playbackController: PlaybackController,
     private val clock: Clock,
 ) : ViewModel() {
+
+    /** The song loaded in the player and whether it plays, for the play/pause icon on song bubbles. */
+    val activeSong: StateFlow<Pair<String?, Boolean>> = playbackController.state
+        .map { it.song?.id to it.isPlaying }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null to false)
+
+    /**
+     * Plays a shared song. The queue is every song shared in this thread, oldest first, so next/previous
+     * walk through what the two of you shared. Tapping the loaded song pauses or resumes it.
+     */
+    fun onPlaySong(songId: String) {
+        val shared = _uiState.value.messages.asReversed().mapNotNull { (it.content as? MessageContent.SharedSong)?.song }.distinctBy { it.id }
+        val index = shared.indexOfFirst { it.id == songId }
+        if (index < 0) return
+        if (playbackController.state.value.song?.id == songId) playbackController.togglePlayPause() else playbackController.play(shared, index)
+    }
 
     private val conversationId: String = savedStateHandle.get<String>(ARG_CONVERSATION_ID).orEmpty()
 
@@ -74,8 +112,31 @@ class ConversationViewModel @Inject constructor(
         ConversationUiState(
             title = savedStateHandle.get<String>(ARG_TITLE).orEmpty(),
             otherUserId = savedStateHandle.get<String>(ARG_OTHER_USER_ID),
+            isGroup = savedStateHandle.get<Boolean>(ARG_IS_GROUP) ?: false,
         ),
     )
+
+    fun onShowMembers() = _uiState.update { it.copy(isMembersOpen = true) }
+
+    fun onHideMembers() = _uiState.update { it.copy(isMembersOpen = false) }
+
+    fun onRequestLeave() = _uiState.update { it.copy(isMembersOpen = false, isConfirmingLeave = true) }
+
+    fun onDismissLeave() = _uiState.update { it.copy(isConfirmingLeave = false) }
+
+    fun onConfirmLeave() {
+        _uiState.update { it.copy(isConfirmingLeave = false) }
+        viewModelScope.launch {
+            when (val result = chatRepository.leave(conversationId)) {
+                is AppResult.Success -> _uiState.update { it.copy(hasLeft = true) }
+                is AppResult.Failure -> _uiState.update { it.copy(sendError = result.error) }
+            }
+        }
+    }
+
+    private suspend fun loadMembers() {
+        chatRepository.getMembers(conversationId).getOrNull()?.let { list -> _uiState.update { it.copy(members = list) } }
+    }
     val uiState: StateFlow<ConversationUiState> = _uiState.asStateFlow()
 
     private var myId: String? = null
@@ -84,6 +145,8 @@ class ConversationViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             myId = authRepository.authState.filterIsInstance<AuthState.SignedIn>().first().userId
+            _uiState.update { it.copy(myId = myId) }
+            if (_uiState.value.isGroup) loadMembers()
             load(initial = true)
             chatRepository.observeNewMessages(conversationId).collect { message ->
                 merge(listOf(message))
@@ -199,6 +262,7 @@ class ConversationViewModel @Inject constructor(
         content = content,
         sentAt = sentAt,
         status = status,
+        senderId = senderId,
     )
 
     companion object {
@@ -206,6 +270,7 @@ class ConversationViewModel @Inject constructor(
         const val ARG_CONVERSATION_ID = "conversationId"
         const val ARG_TITLE = "title"
         const val ARG_OTHER_USER_ID = "otherUserId"
+        const val ARG_IS_GROUP = "isGroup"
         private const val PAGE_SIZE = 50
     }
 }

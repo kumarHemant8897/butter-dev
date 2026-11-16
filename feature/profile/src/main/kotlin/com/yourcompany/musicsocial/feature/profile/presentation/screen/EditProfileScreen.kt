@@ -1,5 +1,10 @@
 package com.yourcompany.musicsocial.feature.profile.presentation.screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,9 +57,14 @@ internal fun EditProfileRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.isSaved) { if (state.isSaved) onBack() }
+    // The system photo picker: no storage permission needed, and the user picks one photo only.
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.onPhotoPicked(uri.toString())
+    }
     EditProfileScreen(
         state = state,
         contentPadding = contentPadding,
+        onPickPhoto = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onBack = onBack,
         onDisplayNameChange = viewModel::onDisplayNameChange,
         onUsernameChange = viewModel::onUsernameChange,
@@ -75,6 +85,7 @@ internal fun EditProfileScreen(
     onSave: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    onPickPhoto: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().padding(contentPadding).imePadding()) {
         Row(
@@ -106,6 +117,7 @@ internal fun EditProfileScreen(
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
+                PhotoSection(state, onPickPhoto)
                 AppTextField(
                     value = state.displayName,
                     onValueChange = onDisplayNameChange,
@@ -169,5 +181,40 @@ private fun EditProfileScreenPreview() {
             contentPadding = PaddingValues(),
             onBack = {}, onDisplayNameChange = {}, onUsernameChange = {}, onBioChange = {}, onSave = {}, onRetry = {},
         )
+    }
+}
+
+/** The current photo with "Change photo"; a spinner covers it while uploading. */
+@Composable
+private fun PhotoSection(state: EditProfileUiState, onPickPhoto: () -> Unit) {
+    androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(contentAlignment = Alignment.Center) {
+            com.yourcompany.musicsocial.core.designsystem.component.UserAvatar(
+                name = state.avatarName.ifBlank { state.displayName },
+                imageUrl = state.avatarUrl,
+                size = 72.dp,
+            )
+            if (state.isUploadingPhoto) com.yourcompany.musicsocial.core.designsystem.component.LoadingIndicator()
+        }
+        androidx.compose.foundation.layout.Spacer(Modifier.width(Spacing.lg))
+        Column {
+            com.yourcompany.musicsocial.core.designsystem.component.SecondaryButton(
+                text = stringResource(R.string.profile_change_photo),
+                onClick = onPickPhoto,
+                loading = state.isUploadingPhoto,
+                size = ButtonSize.Compact,
+            )
+            state.photoError?.let { error ->
+                Text(
+                    stringResource(
+                        if (error is com.yourcompany.musicsocial.core.domain.result.AppError.Validation) R.string.profile_photo_unreadable
+                        else error.toErrorCopy().message,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
+        }
     }
 }

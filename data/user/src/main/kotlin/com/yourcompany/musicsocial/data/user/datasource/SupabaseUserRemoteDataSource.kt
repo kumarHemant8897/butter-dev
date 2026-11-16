@@ -10,6 +10,8 @@ import com.yourcompany.musicsocial.core.network.SupabaseClientProvider
 import com.yourcompany.musicsocial.core.network.call
 import com.yourcompany.musicsocial.core.network.requireUserId
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -97,6 +99,24 @@ internal class SupabaseUserRemoteDataSource @Inject constructor(
                 .mapTo(HashSet()) { it.targetId }
         }
 
+    override suspend fun getFollowers(userId: String, limit: Int): AppResult<List<ProfileDto>> =
+        supabase.call(logger, "follows.followers") { client ->
+            client.from(FOLLOWS).select(Columns.raw("created_at,person:profiles!follows_follower_id_fkey($PROFILE_FIELDS)")) {
+                filter { eq("followee_id", userId) }
+                order("created_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }.decodeList<FollowPersonRow>().map { it.person }
+        }
+
+    override suspend fun getFollowing(userId: String, limit: Int): AppResult<List<ProfileDto>> =
+        supabase.call(logger, "follows.following") { client ->
+            client.from(FOLLOWS).select(Columns.raw("created_at,person:profiles!follows_followee_id_fkey($PROFILE_FIELDS)")) {
+                filter { eq("follower_id", userId) }
+                order("created_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }.decodeList<FollowPersonRow>().map { it.person }
+        }
+
     override suspend fun getFollowsBetween(userId: String): AppResult<List<FollowEdgeDto>> =
         supabase.call(logger, "follows.between") { client ->
             val me = client.requireUserId()
@@ -172,6 +192,49 @@ internal class SupabaseUserRemoteDataSource @Inject constructor(
 
     override fun currentUserId(): String? = supabase.clientOrNull()?.auth?.currentUserOrNull()?.id
 
+    override suspend fun insertBlock(blockedId: String): AppResult<Unit> =
+        supabase.call(logger, "blocks.insert") { client ->
+            client.from(BLOCKS).insert(BlockRow(blockerId = client.requireUserId(), blockedId = blockedId))
+        }.map { }
+
+    override suspend fun deleteBlock(blockedId: String): AppResult<Unit> =
+        supabase.call(logger, "blocks.delete") { client ->
+            val me = client.requireUserId()
+            client.from(BLOCKS).delete {
+                filter {
+                    eq("blocker_id", me)
+                    eq("blocked_id", blockedId)
+                }
+            }
+        }.map { }
+
+    override suspend fun getBlockedIds(): AppResult<Set<String>> =
+        supabase.call(logger, "blocks.list") { client ->
+            val me = client.requireUserId()
+            client.from(BLOCKS).select(Columns.list("blocker_id", "blocked_id")) { filter { eq("blocker_id", me) } }
+                .decodeList<BlockRow>()
+                .mapTo(HashSet()) { it.blockedId }
+        }
+
+    override suspend fun insertReport(targetUserId: String, reason: String, details: String?): AppResult<Unit> =
+        supabase.call(logger, "reports.insert") { client ->
+            client.from(REPORTS).insert(ReportRow(reporterId = client.requireUserId(), targetUserId = targetUserId, reason = reason, details = details))
+        }.map { }
+
+    override suspend fun uploadAvatar(jpeg: ByteArray, fileName: String): AppResult<String> =
+        supabase.call(logger, "avatars.upload") { client ->
+            // The folder must be the user's own id: the storage policy rejects anything else.
+            val path = "${client.requireUserId()}/$fileName"
+            val bucket = client.storage.from(AVATARS)
+            // Every upload has a fresh file name, so no upsert: an upsert needs a SELECT
+            // policy on storage.objects, which would let users list everyone's files.
+            bucket.upload(path, jpeg) {
+                upsert = false
+                contentType = ContentType.Image.JPEG
+            }
+            bucket.publicUrl(path)
+        }
+
     override suspend fun unfollow(followeeId: String): AppResult<Unit> =
         supabase.call(logger, "follows.delete") { client ->
             val me = client.requireUserId()
@@ -190,6 +253,23 @@ internal class SupabaseUserRemoteDataSource @Inject constructor(
     private data class FollowRow(@SerialName("followee_id") val followeeId: String)
 
     @Serializable
+    private data class FollowPersonRow(val person: ProfileDto)
+
+    @Serializable
+    private data class BlockRow(
+        @SerialName("blocker_id") val blockerId: String,
+        @SerialName("blocked_id") val blockedId: String,
+    )
+
+    @Serializable
+    private data class ReportRow(
+        @SerialName("reporter_id") val reporterId: String,
+        @SerialName("target_user_id") val targetUserId: String,
+        val reason: String,
+        val details: String? = null,
+    )
+
+    @Serializable
     private data class RequestTargetRow(@SerialName("target_id") val targetId: String)
 
     @Serializable
@@ -202,6 +282,9 @@ internal class SupabaseUserRemoteDataSource @Inject constructor(
         const val PROFILES = "profiles"
         const val FOLLOWS = "follows"
         const val REQUESTS = "follow_requests"
+        const val BLOCKS = "blocks"
+        const val AVATARS = "avatars"
+        const val REPORTS = "reports"
         private const val PROFILE_FIELDS = "id,username,display_name,bio,avatar_url,follower_count,following_count"
         val PROFILE_COLUMNS: Columns = Columns.raw(PROFILE_FIELDS)
 

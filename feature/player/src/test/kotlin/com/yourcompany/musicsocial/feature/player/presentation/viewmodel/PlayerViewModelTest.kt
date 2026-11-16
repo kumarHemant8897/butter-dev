@@ -23,7 +23,31 @@ class PlayerViewModelTest {
 
     // Lazy: created inside the test, after MainDispatcherRule has installed the test dispatcher.
     private val playlists = FakePlaylistRepository()
-    private val viewModel by lazy { PlayerViewModel(playback, library, playlists) }
+    private val chats = com.yourcompany.musicsocial.core.testing.fake.FakeChatRepository()
+    private val viewModel by lazy { PlayerViewModel(playback, library, playlists, chats) }
+
+    @Test
+    fun `share lists my chats and sends the playing song into the one picked`() {
+        val luna = com.yourcompany.musicsocial.core.domain.model.ConversationSummary(
+            id = "c1",
+            type = com.yourcompany.musicsocial.core.domain.model.ConversationType.DIRECT,
+            title = null,
+            otherUser = com.yourcompany.musicsocial.core.domain.model.UserSummary("u2", "luna", "Luna Waves", null),
+            lastMessage = null,
+            unreadCount = 0,
+            updatedAt = java.time.Instant.EPOCH,
+        )
+        chats.conversations = listOf(luna)
+        playback.play(listOf(song), 0)
+
+        viewModel.onOpenShare()
+        assertEquals(listOf("c1"), viewModel.shareUi.value.conversations?.map { it.id })
+        viewModel.onShareTo(luna)
+
+        assertEquals(listOf("c1" to com.yourcompany.musicsocial.core.domain.model.OutgoingMessage.SongShare(song, null)), chats.sent)
+        assertEquals("Luna Waves", viewModel.playlistUi.value.sharedWith)
+        assertEquals(false, viewModel.shareUi.value.isSheetOpen)
+    }
 
     @Test
     fun `add to playlist lists my playlists and puts the playing song in the one picked`() {

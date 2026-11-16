@@ -64,5 +64,12 @@ sealed interface UserProfileUiState {
         val actionError: AppError? = null,
         /** Set once the chat is ready; the screen navigates and calls onConversationOpened. */
         val openConversation: ConversationRoute? = null,
+        /** Which confirmation or form is open on top of the profile. */
+        val dialog: ProfileDialog? = null,
+        val isReporting: Boolean = false,
+        /** A report was sent; shown as a short thank-you. */
+        val reportSent: Boolean = false,
     ) : UserProfileUiState
 }
+
+enum class ProfileDialog { BLOCK, UNBLOCK, REPORT }

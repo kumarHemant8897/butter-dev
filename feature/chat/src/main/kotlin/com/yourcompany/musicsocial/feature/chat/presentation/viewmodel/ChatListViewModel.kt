@@ -125,10 +125,16 @@ class ChatListViewModel @Inject constructor(
 
     private fun ConversationSummary.toItem(): ConversationItem {
         val last = lastMessage
-        val prefix = if (last != null && last.senderId == myId) "You: " else ""
+        val prefix = when {
+            last == null -> ""
+            last.senderId == myId -> "You: "
+            // In a group, say who wrote it: "Riya: see you there".
+            type == ConversationType.GROUP -> last.senderName?.substringBefore(' ')?.let { "$it: " }.orEmpty()
+            else -> ""
+        }
         val (preview, isMusic) = when (val content = last?.content) {
             is MessageContent.Text -> prefix + content.body to false
-            is MessageContent.SharedSong -> prefix + "Shared a song" to true
+            is MessageContent.SharedSong -> prefix + "Shared a song · " + content.song.title to true
             is MessageContent.SharedPlaylist -> prefix + "Shared a playlist" to true
             MessageContent.Deleted -> "Message deleted" to false
             null -> "Say hi 👋" to false

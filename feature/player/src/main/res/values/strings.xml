@@ -14,6 +14,12 @@
     <string name="player_progress">Preview position</string>
 
     <string name="player_add_to_playlist">Add to a playlist</string>
+    <string name="player_share">Share this song in a chat</string>
+    <string name="player_share_short">Share</string>
+    <string name="player_share_title">Share with</string>
+    <string name="player_share_empty">No chats yet. Follow someone, and once either of you accepts, you can share songs here.</string>
+    <string name="player_share_sent">Shared with %1$s</string>
+    <string name="player_share_group">Group chat</string>
     <string name="player_like">Like this song</string>
     <string name="player_unlike">Remove from liked songs</string>
     <string name="player_save">Save this song</string>

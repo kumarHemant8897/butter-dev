@@ -33,9 +33,41 @@ class EditProfileViewModelTest {
     )
     private val auth = FakeAuthRepository(AuthState.SignedIn("me", null))
 
+    /** Pretends every picked photo becomes these bytes, or fails when [bytes] is null. */
+    private class FakeImageReader(var bytes: ByteArray? = byteArrayOf(1, 2, 3)) :
+        com.yourcompany.musicsocial.feature.profile.presentation.avatar.AvatarImageReader {
+        override suspend fun read(uri: String): ByteArray? = bytes
+    }
+
+    private val images = FakeImageReader()
+
     private fun viewModel() = EditProfileViewModel(
-        auth, users, ValidateUsernameUseCase(), ValidateDisplayNameUseCase(), ValidateBioUseCase(),
+        auth, users, ValidateUsernameUseCase(), ValidateDisplayNameUseCase(), ValidateBioUseCase(), images,
     )
+
+    @Test
+    fun `a picked photo is uploaded and shown at once`() {
+        val viewModel = viewModel()
+
+        viewModel.onPhotoPicked("content://media/picked/1")
+
+        val state = viewModel.uiState.value
+        assertEquals(1, users.uploadedAvatars.size)
+        assertEquals("https://storage.example/avatars/me/avatar-1.jpg", state.avatarUrl)
+        assertEquals("https://storage.example/avatars/me/avatar-1.jpg", users.profiles["me"]!!.avatarUrl)
+        assertFalse(state.isUploadingPhoto)
+    }
+
+    @Test
+    fun `an unreadable photo shows an error and uploads nothing`() {
+        images.bytes = null
+        val viewModel = viewModel()
+
+        viewModel.onPhotoPicked("content://media/picked/broken")
+
+        assertTrue(users.uploadedAvatars.isEmpty())
+        assertTrue(viewModel.uiState.value.photoError is AppError.Validation)
+    }
 
     @Test
     fun `the form is filled from the current profile`() {

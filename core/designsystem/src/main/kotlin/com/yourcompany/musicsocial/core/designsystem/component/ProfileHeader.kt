@@ -17,8 +17,14 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.dp
 import com.yourcompany.musicsocial.core.designsystem.icon.AppIcons
 import com.yourcompany.musicsocial.core.designsystem.theme.ButterTheme
@@ -27,7 +33,7 @@ import com.yourcompany.musicsocial.core.designsystem.theme.Spacing
 
 /** A labelled number in the profile header, e.g. "1.2k" followers. */
 @Immutable
-data class ProfileStat(val value: String, val label: String)
+data class ProfileStat(val value: String, val label: String, val onClick: (() -> Unit)? = null)
 
 /**
  * Profile header from the Figma "User Profile" frame: avatar left, name, violet handle and bio
@@ -60,9 +66,24 @@ fun ProfileHeader(
         Spacer(Modifier.height(Spacing.xl))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
             stats.forEach { stat ->
+                val click = stat.onClick
                 Row(
                     verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier.clearAndSetSemantics { contentDescription = "${stat.value} ${stat.label}" },
+                    modifier = Modifier
+                        .then(
+                            if (click != null) {
+                                Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = click).padding(vertical = Spacing.xs)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clearAndSetSemantics {
+                            contentDescription = "${stat.value} ${stat.label}"
+                            if (click != null) {
+                                role = Role.Button
+                                onClick { click(); true }
+                            }
+                        },
                 ) {
                     Text(stat.value, style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.width(6.dp))

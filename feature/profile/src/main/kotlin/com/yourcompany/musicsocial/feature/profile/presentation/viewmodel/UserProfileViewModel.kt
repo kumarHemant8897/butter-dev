@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.yourcompany.musicsocial.core.domain.model.FollowStatus
 import com.yourcompany.musicsocial.core.domain.model.LibraryKind
 import com.yourcompany.musicsocial.core.domain.model.Relationship
+import com.yourcompany.musicsocial.core.domain.model.ReportReason
+import com.yourcompany.musicsocial.feature.profile.presentation.state.ProfileDialog
 import com.yourcompany.musicsocial.core.domain.playback.PlaybackController
 import com.yourcompany.musicsocial.core.domain.repository.ChatRepository
 import com.yourcompany.musicsocial.core.domain.repository.LibraryRepository
@@ -118,6 +120,53 @@ class UserProfileViewModel @Inject constructor(
     }
 
     fun onConversationOpened() = updateContent { it.copy(openConversation = null) }
+
+    // ---- block and report -------------------------------------------------------------------------
+
+    fun onShowDialog(dialog: ProfileDialog) = updateContent { it.copy(dialog = dialog, actionError = null, reportSent = false) }
+
+    fun onDismissDialog() = updateContent { it.copy(dialog = null) }
+
+    /** Blocking ends the follow both ways, so their songs and the Message button go away at once. */
+    fun onConfirmBlock() {
+        val content = _uiState.value as? UserProfileUiState.Content ?: return
+        updateContent { it.copy(dialog = null, isUpdating = true) }
+        viewModelScope.launch {
+            when (val result = userRepository.block(userId)) {
+                is AppResult.Success -> {
+                    updateContent { it.copy(isUpdating = false) }
+                    // Counts change on both sides; reload them from the database.
+                    load(showLoading = false)
+                }
+                is AppResult.Failure -> updateContent { it.copy(isUpdating = false, actionError = result.error, relationship = content.relationship) }
+            }
+        }
+    }
+
+    fun onConfirmUnblock() {
+        updateContent { it.copy(dialog = null, isUpdating = true) }
+        viewModelScope.launch {
+            when (val result = userRepository.unblock(userId)) {
+                is AppResult.Success -> {
+                    updateContent { it.copy(isUpdating = false) }
+                    load(showLoading = false)
+                }
+                is AppResult.Failure -> updateContent { it.copy(isUpdating = false, actionError = result.error) }
+            }
+        }
+    }
+
+    fun onSendReport(reason: ReportReason, details: String) {
+        val content = _uiState.value as? UserProfileUiState.Content ?: return
+        if (content.isReporting) return
+        updateContent { it.copy(isReporting = true) }
+        viewModelScope.launch {
+            when (val result = userRepository.report(userId, reason, details)) {
+                is AppResult.Success -> updateContent { it.copy(isReporting = false, dialog = null, reportSent = true) }
+                is AppResult.Failure -> updateContent { it.copy(isReporting = false, actionError = result.error) }
+            }
+        }
+    }
 
     fun onSongClick(kind: LibraryKind, index: Int) {
         val content = _uiState.value as? UserProfileUiState.Content ?: return

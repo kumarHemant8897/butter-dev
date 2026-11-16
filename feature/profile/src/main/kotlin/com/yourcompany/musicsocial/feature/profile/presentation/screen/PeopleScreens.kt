@@ -252,3 +252,66 @@ internal fun FollowRequestsScreen(
         }
     }
 }
+
+// ---- Followers / following ----------------------------------------------------------------------
+
+@Composable
+internal fun FollowListRoute(
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    viewModel: com.yourcompany.musicsocial.feature.profile.presentation.viewmodel.FollowListViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var isFirstResume by rememberSaveable { mutableStateOf(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (isFirstResume) isFirstResume = false else viewModel.refresh()
+    }
+    FollowListScreen(state, contentPadding, onBack, onOpenProfile, viewModel::onRetry)
+}
+
+@Composable
+internal fun FollowListScreen(
+    state: com.yourcompany.musicsocial.feature.profile.presentation.viewmodel.FollowListUiState,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val title = stringResource(if (state.isFollowers) R.string.follow_list_followers_title else R.string.follow_list_following_title, state.name)
+    LazyColumn(modifier.fillMaxSize(), contentPadding = contentPadding) {
+        item(key = "title") { TitleBar(title, onBack) }
+        when {
+            state.error != null -> item(key = "error") {
+                AppErrorView(error = state.error, onRetry = onRetry, modifier = Modifier.fillMaxWidth().height(320.dp))
+            }
+            state.isLoading -> item(key = "loading") {
+                Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { LoadingIndicator() }
+            }
+            state.people.isEmpty() -> item(key = "empty") {
+                EmptyState(
+                    icon = AppIcons.Profile,
+                    title = stringResource(if (state.isFollowers) R.string.follow_list_no_followers else R.string.follow_list_no_following),
+                    message = stringResource(if (state.isFollowers) R.string.follow_list_no_followers_message else R.string.follow_list_no_following_message),
+                    modifier = Modifier.height(320.dp),
+                )
+            }
+            else -> items(state.people, key = { it.id }) { person ->
+                val isMe = person.id == state.myId
+                PersonRow(
+                    name = if (isMe) stringResource(R.string.follow_list_you, person.displayName) else person.displayName,
+                    subtitle = pluralStringResource(
+                        R.plurals.people_handle_followers,
+                        person.followerCount,
+                        person.username,
+                        formatCompactCount(person.followerCount),
+                    ),
+                    avatarUrl = person.avatarUrl,
+                    // Your own row has no "other person's profile" to open.
+                    onClick = if (isMe) null else ({ onOpenProfile(person.id) }),
+                )
+            }
+        }
+    }
+}

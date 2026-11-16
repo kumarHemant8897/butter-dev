@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated after the social release: follow requests, other people's profiles, liked/saved songs and one-to-one chat.
+Last updated at the end of Phase 4 (song sharing, followers/following lists, block and report, profile photos, group chats). Push notifications are not built yet.
 Backend features were tested against a **local** Supabase stack only (reached over the home Wi-Fi, see "Testing on two phones").
 Only things that were actually done and checked are marked as done.
 
@@ -10,8 +10,8 @@ Only things that were actually done and checked are marked as done.
 |---|---|
 | `assembleDevDebug` | Builds, no compiler warnings |
 | `assembleProdRelease` (R8 shrinking on) | Built and smoke-tested at the end of Phase 1; **not rebuilt after Phase 2** |
-| JVM unit tests (`testDevDebugUnitTest testDebugUnitTest :core:domain:test`) | 165 tests, 0 failures |
-| Database rules (`rls_smoke_test.sql`, `social_rules_test.sql`, each in a rolled-back transaction) | Both pass: follow only by request, library visible only to approved followers, chat only between connected people, strangers see nothing |
+| JVM unit tests (`testDevDebugUnitTest testDebugUnitTest :core:domain:test`) | 187 tests, 0 failures |
+| Database rules (`rls_smoke_test.sql`, `social_rules_test.sql`, `playlists_test.sql`, `safety_groups_test.sql`, each in a rolled-back transaction) | All pass: follow only by request, library visible only to approved followers, chat only between connected people, strangers see nothing, blocks cut follows and stop requests and direct messages, reports are write-only, groups only add connected people, avatar uploads only into your own folder |
 | Social flow on the phone, over Wi-Fi only (no USB tunnel) | New user's Chats shows "Find your people"; people search finds Riya; her profile shows counts and a locked music card; Follow becomes "Requested" and creates a request row; after she accepts, her liked songs and a Message button appear; a sent message is stored and her reply appears in the open chat without refreshing; the heart and save buttons on the Player store the song |
 | Song search on the phone | Typing "kesariya" in Discover returns real Bollywood results from the iTunes India store, with album art |
 | Preview playback on the phone | Tapping play starts the 30-second preview; Android reports the app playing music; the Player shows real art, title, artists and a moving progress bar; the mini player appears on other tabs |
@@ -44,7 +44,7 @@ Only things that were actually done and checked are marked as done.
 - Mini player has previous / next and a draggable seek bar; the content no longer slides under the status bar.
 - Concurrent chart requests (Home, Discover, artists) share one download; the main chart feed gets 4 s before the fallback feed is tried.
 - Home's sample social sections (friends listening, shared with you, sample mix) were removed; they return with chat and activity in Phase 4.
-- Preview audio is streamed only: preview URLs are never written to the local cache, and playback pauses when the app goes to the background.
+- Preview audio is streamed only: preview URLs are never written to the local cache. (Playback now continues in the background; see below.)
 
 ## Social (follow requests, profiles, library, chat)
 
@@ -68,6 +68,27 @@ Only things that were actually done and checked are marked as done.
 - Background playback: `PlaybackService` (Media3 `MediaSessionService`) keeps music playing after leaving the app, with the media notification, lock-screen and Quick Settings controls; next/previous there use the app's queue. Verified on the phone: audio still playing 75 s after pressing Home, service in the foreground, Next and Pause in Quick Settings work, the queue advances in the background.
 - Verified on the phone: creating "Road trip" from the Player stored it with the playing song. **Not yet checked on the phone:** the Playlists section on the profile, opening a playlist, removing a song, deleting a playlist (all covered by unit tests).
 
+## Phase 4: sharing, safety, photos, groups
+
+- Song sharing (migration 9, `20261113000009_song_messages.sql`): `message_songs` replaces the unused `message_shares`; `send_song_message` sends a song with an optional comment in one step and is safe to retry. The Player's Share button opens a sheet of your chats. A shared song plays from the chat. Verified on the phone.
+- Followers / following lists (`FollowListRoute`): tap the counts on any profile. Visible to anyone signed in, like the counts. Verified on the phone (your own "following" list).
+- Block and report (migration 10, `20261115000010_blocks_reports_avatars_groups.sql`), from the ⋯ menu on a profile:
+  - Block asks first, removes follows and requests both ways, and stops follow requests and direct messages. Only the blocker can see the block. Blocked people are hidden from search and suggestions. Groups are not affected.
+  - Report has five reasons and optional details (up to 1000 characters). Users can only add reports; moderators read them with the service role.
+  - Verified on the phone: a report is stored, Block removes the follow and shows "You blocked …" with Unblock, Unblock brings back the Follow button.
+- Profile photos: Edit profile → Change photo opens the system photo picker. The photo is shrunk to 512 px JPEG and uploaded straight away to the public `avatars` bucket (2 MB limit, JPEG/PNG/WebP, each user writes only to their own folder). Every upload gets a new file name, so the upload does not overwrite. Verified on the phone: the photo shows on the profile and in the group member list.
+- Group chats: Chats compose → New group, name it and pick people you're connected to (1–49 others; anyone else is skipped by the server). Other people's messages show their first name above the bubble; the chat list shows "Riya: …" for groups. Tapping the header opens the member list with Leave group. Verified on the phone: create with two people, send, a reply arrives live with the name above it, Leave removes it from your list.
+
+## Hosted backend and shareable build
+
+- Hosted project `butter-dev` (`pzrsrbasiyxqcvqvyrgi`, region Sydney) has all 11 migrations (`supabase db push --remote`). Auth: minimum password length 8, email confirmation off (testers can sign up without an email step). API row limit 200, storage file limit 10 MB.
+- Migration 11 (`20261115000011_private_block_check.sql`): `is_blocked_between` only answers when the caller is one of the two people, so nobody can probe whether two others blocked each other. `safety_groups_test.sql` checks this.
+- Security advisor: 7 warnings, all "signed-in users can execute SECURITY DEFINER function". They are intentional (follow accept, chat creation, block and membership checks used by row rules); each function checks `auth.uid()` itself.
+- Release build: `assembleProdRelease` (R8 on), signed with `~/.butter/butter-release.jks`. The keystore path and passwords are in `local.properties` (git-ignored). **Back up the keystore and its password**: updates to installed copies must be signed with the same key.
+- Shareable file: `dist/Butter-0.1.0.apk` (4.2 MB, git-ignored). Verified on the phone against the hosted server over HTTPS: sign-up from the app, Home charts with album art, people search, follow request accepted by a second account, chat both ways, profile photo upload to hosted Storage.
+- Accounts on the hosted server start empty; local test accounts were not copied. Test accounts there: `testing.user` and `riya.sings` (credentials kept out of the repository).
+- Known: after a follow request is accepted while the profile is open, the follower count updates only when the profile is reopened.
+
 ## Testing on two phones (same Wi-Fi)
 
 1. On the PC: `supabase start` in `backend/`. The PC must stay on, on the same Wi-Fi as both phones. Windows Firewall has an inbound rule "Butter local Supabase (54321)" limited to the local subnet.
@@ -82,10 +103,10 @@ Only things that were actually done and checked are marked as done.
 ## Not implemented
 
 - Password reset, email-confirmation handling beyond a "check your inbox" message (untested), "show password", social logins, onboarding
-- Avatar upload, followers/following lists, a "private account" switch (every account approves followers today)
+- A "private account" switch (every account approves followers today), a list of people you've blocked
 - Full-length songs (needs a licence; see Known limitations), renaming playlists and reordering their songs, catalogue rows in Supabase
-- Sharing songs into chat, group chats in the UI, push notifications for messages and requests, offline outbox, older-message paging in a thread (the latest 50 are shown)
-- `notifications` table, group-member management, blocking/reporting, Storage buckets
+- Push notifications for messages and requests (needs Firebase and the hosted backend), offline outbox, older-message paging in a thread (the latest 50 are shown)
+- Adding people to a group after it is created, renaming a group, group photos; a moderator screen for reports
 - Crash reporting vendor (a no-op `CrashReporter` is bound), analytics, release signing
 - Light theme design, tablet/landscape layouts, localisation beyond English
 
@@ -108,14 +129,16 @@ Only things that were actually done and checked are marked as done.
 - The Wi-Fi test setup sends traffic over plain HTTP on the home network (debug builds only). Never ship it; production must use the hosted project over HTTPS.
 - The second phone was simulated through the API from the PC (accept, like, reply). A real second phone has not been tested yet.
 - Changing the backend address signs everyone out once (sessions are stored per server).
+- KSP is pinned to 2.3.12. Version 2.3.13 sometimes produced no Hilt code for a module in parallel builds ([google/ksp#3286](https://github.com/google/ksp/issues/3286)), which crashed the app at start with `NoSuchMethodException …ViewModel.<init>`. Move up only to a release that fixes that issue.
+- Group messages from other members were simulated from the PC database; a real second phone in a group has not been tested.
 
 ## Blockers
 
-None for the Wi-Fi test. For testing away from home: authenticate the hosted MCP server or paste the 7 migrations into the hosted SQL editor.
+None for the Wi-Fi test. Push notifications need a Firebase project and the hosted backend. For testing away from home: authenticate the hosted MCP server or paste the 10 migrations into the hosted SQL editor.
 
 ## Next steps
 
-1. Install `dist/Butter-dev-wifi-test.apk` on a second phone and run the two-phone test above.
-2. Apply the 7 migrations to the hosted `butter-dev` project, set its Auth minimum password length to 8, and point the build at it (HTTPS, works anywhere).
-3. Decide whether previews should stop after one song or keep auto-advancing.
-4. Song sharing in chat, push notifications, followers/following lists.
+1. Share `dist/Butter-0.1.0.apk` with testers and collect feedback.
+2. Before a Play Store release: permanent application id, in-app account deletion, privacy policy, email confirmation with a real email sender.
+3. Push notifications (Firebase Cloud Messaging plus a server function) once the hosted backend exists.
+4. Decide whether previews should stop after one song or keep auto-advancing, and whether follow lists should be visible to approved followers only.

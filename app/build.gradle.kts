@@ -68,6 +68,20 @@ android {
         }
     }
 
+    // The keystore and its passwords stay outside the repository (local.properties or CI variables).
+    // Without them the release build is simply left unsigned.
+    val releaseStoreFile = secret("RELEASE_STORE_FILE")
+    val releaseSigning = if (releaseStoreFile.isNotEmpty()) {
+        signingConfigs.create("release") {
+            storeFile = file(releaseStoreFile)
+            storePassword = secret("RELEASE_STORE_PASSWORD")
+            keyAlias = secret("RELEASE_KEY_ALIAS")
+            keyPassword = secret("RELEASE_KEY_PASSWORD")
+        }
+    } else {
+        null
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -76,7 +90,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signing is intentionally not configured here. See docs/DEVELOPMENT_GUIDE.md (Release signing).
+            signingConfig = releaseSigning
         }
     }
 

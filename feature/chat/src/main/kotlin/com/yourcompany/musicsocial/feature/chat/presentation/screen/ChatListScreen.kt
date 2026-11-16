@@ -15,6 +15,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -47,6 +53,7 @@ internal fun ChatListRoute(
     contentPadding: PaddingValues,
     onFindPeople: () -> Unit,
     onOpenConversation: (ConversationRoute) -> Unit,
+    onNewGroup: () -> Unit,
     viewModel: ChatListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -67,6 +74,7 @@ internal fun ChatListRoute(
             onFindPeople = onFindPeople,
             onRetry = viewModel::onRetry,
             onOpenConversation = onOpenConversation,
+            onNewGroup = onNewGroup,
         ),
     )
 }
@@ -79,6 +87,7 @@ internal data class ChatListActions(
     val onFindPeople: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onOpenConversation: (ConversationRoute) -> Unit = {},
+    val onNewGroup: () -> Unit = {},
 )
 
 @Composable
@@ -92,14 +101,33 @@ internal fun ChatListScreen(
         LazyColumn(Modifier.weight(1f)) {
             item(key = "title") {
                 ScreenTitle(eyebrow = stringResource(R.string.chat_eyebrow), title = stringResource(R.string.chat_title)) {
-                    // Starting a chat begins with finding the person.
-                    CircleIconButton(
-                        icon = AppIcons.Compose,
-                        contentDescription = stringResource(R.string.chat_new),
-                        onClick = actions.onFindPeople,
-                        filled = true,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    // New message (find the person) or new group.
+                    var menuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        CircleIconButton(
+                            icon = AppIcons.Compose,
+                            contentDescription = stringResource(R.string.chat_new),
+                            onClick = { menuOpen = true },
+                            filled = true,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.chat_new_message)) },
+                                onClick = {
+                                    menuOpen = false
+                                    actions.onFindPeople()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.chat_new_group)) },
+                                onClick = {
+                                    menuOpen = false
+                                    actions.onNewGroup()
+                                },
+                            )
+                        }
+                    }
                 }
             }
             when {
@@ -153,7 +181,7 @@ internal fun ChatListScreen(
                     items(state.conversations, key = { it.id }) { item ->
                         ConversationRow(
                             item = item,
-                            onClick = { actions.onOpenConversation(ConversationRoute(item.id, item.title, item.otherUserId)) },
+                            onClick = { actions.onOpenConversation(ConversationRoute(item.id, item.title, item.otherUserId, isGroup = item.isGroup)) },
                         )
                     }
                 }

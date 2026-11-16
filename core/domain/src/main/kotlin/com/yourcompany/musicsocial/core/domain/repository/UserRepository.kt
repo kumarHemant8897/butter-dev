@@ -5,6 +5,7 @@ import com.yourcompany.musicsocial.core.domain.model.Page
 import com.yourcompany.musicsocial.core.domain.model.PageRequest
 import com.yourcompany.musicsocial.core.domain.model.ProfileUpdate
 import com.yourcompany.musicsocial.core.domain.model.Relationship
+import com.yourcompany.musicsocial.core.domain.model.ReportReason
 import com.yourcompany.musicsocial.core.domain.model.UserProfile
 import com.yourcompany.musicsocial.core.domain.result.AppResult
 
@@ -32,6 +33,12 @@ interface UserRepository {
     /** Ids of everyone the signed-in user has asked to follow and who has not answered yet. */
     suspend fun getRequestedIds(): AppResult<Set<String>>
 
+    /** People who follow [userId], most recent first (at most 200). */
+    suspend fun getFollowers(userId: String): AppResult<List<UserProfile>>
+
+    /** People [userId] follows, most recent first (at most 200). */
+    suspend fun getFollowing(userId: String): AppResult<List<UserProfile>>
+
     suspend fun getRelationship(userId: String): AppResult<Relationship>
 
     /** Idempotent: asking again while a request is waiting succeeds. */
@@ -48,4 +55,21 @@ interface UserRepository {
     suspend fun acceptFollowRequest(requesterId: String): AppResult<Unit>
 
     suspend fun declineFollowRequest(requesterId: String): AppResult<Unit>
+
+    /** Ends any follow between the two people and stops requests and direct messages both ways. */
+    suspend fun block(userId: String): AppResult<Unit>
+
+    suspend fun unblock(userId: String): AppResult<Unit>
+
+    /** People the signed-in user blocked. They are left out of search and suggestions. */
+    suspend fun getBlockedIds(): AppResult<Set<String>>
+
+    /**
+     * Uploads [jpeg] (already resized by the caller) as the signed-in user's profile photo and saves
+     * its address on the profile. Returns the updated profile.
+     */
+    suspend fun uploadAvatar(jpeg: ByteArray): AppResult<UserProfile>
+
+    /** Sends a report to the moderators. [details] is optional, up to 1000 characters. */
+    suspend fun report(userId: String, reason: ReportReason, details: String?): AppResult<Unit>
 }

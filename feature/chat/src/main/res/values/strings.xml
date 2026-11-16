@@ -2,7 +2,30 @@
 <resources>
     <string name="chat_eyebrow">Good music travels</string>
     <string name="chat_title">Your people.</string>
-    <string name="chat_new">Find someone to message</string>
+    <string name="chat_new">New message or group</string>
+    <string name="chat_new_message">New message</string>
+    <string name="chat_new_group">New group</string>
+    <string name="group_title">New group</string>
+    <string name="group_name_hint">Group name</string>
+    <string name="group_create">Create</string>
+    <string name="group_pick_people">Add people</string>
+    <string name="group_nobody">Groups are with people you\'re connected to. Follow someone, and once a request is accepted they appear here.</string>
+    <string name="group_name_too_long">Use at most 80 characters</string>
+    <plurals name="group_selected">
+        <item quantity="one">%1$d person selected</item>
+        <item quantity="other">%1$d people selected</item>
+    </plurals>
+    <plurals name="group_members">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <string name="group_members_title">Members</string>
+    <string name="group_you">%1$s (you)</string>
+    <string name="group_leave">Leave group</string>
+    <string name="group_leave_title">Leave %1$s?</string>
+    <string name="group_leave_message">You\'ll stop getting its messages, and it leaves your chat list. You can\'t rejoin it later.</string>
+    <string name="group_cancel">Cancel</string>
+    <string name="group_show_members">Show members of %1$s</string>
     <string name="chat_search_hint">Search conversations</string>
     <string name="chat_filter_all">All</string>
     <string name="chat_filter_friends">Friends</string>
@@ -20,11 +43,14 @@
     <string name="chat_message_hint">Message</string>
     <string name="chat_send">Send</string>
     <string name="chat_empty_thread">Say hi to %1$s. Messages appear here for both of you.</string>
+    <string name="chat_empty_group">Say hi to %1$s. Messages appear here for everyone in the group.</string>
     <string name="chat_sending">Sending…</string>
     <string name="chat_failed">Not sent. Tap to try again.</string>
     <string name="chat_seen">Seen</string>
     <string name="chat_deleted">Message deleted</string>
     <string name="chat_shared_song">Shared a song</string>
+    <string name="chat_play_song">Play a preview of %1$s</string>
+    <string name="chat_pause_song">Pause %1$s</string>
     <string name="chat_shared_playlist">Shared a playlist</string>
     <string name="chat_too_long">Messages can be up to 4000 characters.</string>
 </resources>

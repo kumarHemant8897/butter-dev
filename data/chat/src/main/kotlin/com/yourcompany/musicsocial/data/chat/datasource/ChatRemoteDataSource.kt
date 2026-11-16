@@ -29,11 +29,38 @@ interface ChatRemoteDataSource {
 
     suspend fun insertMessage(message: NewMessageDto): AppResult<MessageDto>
 
+    /** Stores a song message and its song together (`send_song_message`); returns the message id. */
+    suspend fun sendSongMessage(conversationId: String, clientId: String, comment: String?, song: MessageSongDto): AppResult<String>
+
+    /** One message with its song, or null when it is not visible. */
+    suspend fun getMessage(messageId: String): AppResult<MessageDto?>
+
     /** Moves the caller's read cursor forward; drives "read" ticks for other members. */
     suspend fun markRead(conversationId: String, upToCreatedAt: String): AppResult<Unit>
 
     fun currentUserId(): String?
+
+    suspend fun createGroup(title: String, memberIds: List<String>): AppResult<String>
+
+    suspend fun getMembers(conversationId: String): AppResult<List<MemberDto>>
+
+    suspend fun leave(conversationId: String): AppResult<Unit>
 }
+
+/** A conversation member with their profile embedded. */
+@Serializable
+data class MemberDto(
+    @SerialName("user_id") val userId: String,
+    val person: MemberPersonDto? = null,
+)
+
+@Serializable
+data class MemberPersonDto(
+    val id: String,
+    val username: String,
+    @SerialName("display_name") val displayName: String,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+)
 
 data class MessageCursor(val createdAt: String, val id: String)
 
@@ -53,6 +80,9 @@ data class ConversationRowDto(
     @SerialName("last_kind") val lastKind: String? = null,
     @SerialName("last_body") val lastBody: String? = null,
     @SerialName("last_deleted") val lastDeleted: Boolean? = null,
+    @SerialName("last_song_title") val lastSongTitle: String? = null,
+    @SerialName("last_sender_name") val lastSenderName: String? = null,
+    @SerialName("member_count") val memberCount: Int = 2,
     @SerialName("unread_count") val unreadCount: Int = 0,
 )
 
@@ -68,13 +98,20 @@ data class MessageDto(
     @SerialName("created_at") val createdAt: String,
     @SerialName("edited_at") val editedAt: String? = null,
     @SerialName("deleted_at") val deletedAt: String? = null,
-    val share: MessageShareDto? = null,
+    /** Present for kind "song". Realtime inserts arrive without it; the repository fetches it. */
+    val song: MessageSongDto? = null,
 )
 
+/** Row of `public.message_songs`: the shared catalogue song's display data (no preview address). */
 @Serializable
-data class MessageShareDto(
-    @SerialName("song_id") val songId: String? = null,
-    @SerialName("playlist_id") val playlistId: String? = null,
+data class MessageSongDto(
+    @SerialName("song_id") val songId: String,
+    val title: String,
+    @SerialName("artist_names") val artistNames: String,
+    @SerialName("album_title") val albumTitle: String? = null,
+    @SerialName("artwork_url") val artworkUrl: String? = null,
+    @SerialName("external_url") val externalUrl: String? = null,
+    @SerialName("duration_ms") val durationMs: Long = 0,
 )
 
 @Serializable

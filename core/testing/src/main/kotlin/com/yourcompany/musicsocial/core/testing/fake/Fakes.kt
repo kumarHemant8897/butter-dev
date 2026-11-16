@@ -21,6 +21,7 @@ import com.yourcompany.musicsocial.core.domain.result.AppResult
 import com.yourcompany.musicsocial.core.domain.system.BackendAvailability
 import com.yourcompany.musicsocial.core.domain.system.NetworkMonitor
 import com.yourcompany.musicsocial.core.domain.model.ConversationSummary
+import com.yourcompany.musicsocial.core.domain.model.UserSummary
 import com.yourcompany.musicsocial.core.domain.model.DeliveryStatus
 import com.yourcompany.musicsocial.core.domain.model.FollowRequest
 import com.yourcompany.musicsocial.core.domain.model.FollowStatus
@@ -29,6 +30,7 @@ import com.yourcompany.musicsocial.core.domain.model.Message
 import com.yourcompany.musicsocial.core.domain.model.MessageContent
 import com.yourcompany.musicsocial.core.domain.model.OutgoingMessage
 import com.yourcompany.musicsocial.core.domain.model.Relationship
+import com.yourcompany.musicsocial.core.domain.model.ReportReason
 import com.yourcompany.musicsocial.core.domain.repository.ChatRepository
 import com.yourcompany.musicsocial.core.domain.repository.LibraryRepository
 import com.yourcompany.musicsocial.core.domain.repository.PlaylistRepository
@@ -273,7 +275,18 @@ class FakeUserRepository(
 
     override suspend fun getRequestedIds(): AppResult<Set<String>> = result { AppResult.Success(requested.toSet()) }
 
+    /** Follower and following lists by user id, for list screens. */
+    val followerLists: MutableMap<String, List<UserProfile>> = mutableMapOf()
+    val followingLists: MutableMap<String, List<UserProfile>> = mutableMapOf()
+
+    override suspend fun getFollowers(userId: String): AppResult<List<UserProfile>> =
+        result { AppResult.Success(followerLists[userId].orEmpty()) }
+
+    override suspend fun getFollowing(userId: String): AppResult<List<UserProfile>> =
+        result { AppResult.Success(followingLists[userId].orEmpty()) }
+
     override suspend fun getRelationship(userId: String): AppResult<Relationship> = result {
+        if (userId in blocked) return@result AppResult.Success(Relationship(FollowStatus.NONE, followsMe = false, blockedByMe = true))
         val status = when (userId) {
             in following -> FollowStatus.FOLLOWING
             in requested -> FollowStatus.REQUESTED
@@ -306,6 +319,41 @@ class FakeUserRepository(
 
     override suspend fun declineFollowRequest(requesterId: String): AppResult<Unit> = result {
         incoming.removeAll { it.requester.id == requesterId }
+        AppResult.Success(Unit)
+    }
+
+    val blocked: MutableSet<String> = mutableSetOf()
+    val reports = mutableListOf<Triple<String, ReportReason, String?>>()
+
+    /** Like the database: a block ends follows and requests both ways. */
+    override suspend fun block(userId: String): AppResult<Unit> = result {
+        blocked += userId
+        following -= userId
+        followers -= userId
+        requested -= userId
+        incoming.removeAll { it.requester.id == userId }
+        AppResult.Success(Unit)
+    }
+
+    override suspend fun unblock(userId: String): AppResult<Unit> = result {
+        blocked -= userId
+        AppResult.Success(Unit)
+    }
+
+    override suspend fun getBlockedIds(): AppResult<Set<String>> = result { AppResult.Success(blocked.toSet()) }
+
+    val uploadedAvatars = mutableListOf<ByteArray>()
+
+    override suspend fun uploadAvatar(jpeg: ByteArray): AppResult<UserProfile> = result {
+        uploadedAvatars += jpeg
+        val current = profiles[meId] ?: return@result AppResult.Failure(AppError.NotFound)
+        val updated = current.copy(avatarUrl = "https://storage.example/avatars/$meId/avatar-${uploadedAvatars.size}.jpg")
+        profiles[meId] = updated
+        AppResult.Success(updated)
+    }
+
+    override suspend fun report(userId: String, reason: ReportReason, details: String?): AppResult<Unit> = result {
+        reports += Triple(userId, reason, details)
         AppResult.Success(Unit)
     }
 }
@@ -376,12 +424,16 @@ class FakeChatRepository(private val meId: String = "me") : ChatRepository {
     override suspend fun sendMessage(conversationId: String, message: OutgoingMessage, clientMessageId: String): AppResult<Message> {
         failWith?.let { return AppResult.Failure(it) }
         sent += conversationId to message
-        val body = (message as OutgoingMessage.Text).body
+        val content = when (message) {
+            is OutgoingMessage.Text -> MessageContent.Text(message.body)
+            is OutgoingMessage.SongShare -> MessageContent.SharedSong(message.song, message.comment)
+            is OutgoingMessage.PlaylistShare -> return AppResult.Failure(AppError.Validation("kind", "unsupported"))
+        }
         val stored = Message(
             id = "m-$clientMessageId",
             conversationId = conversationId,
             senderId = meId,
-            content = MessageContent.Text(body),
+            content = content,
             sentAt = java.time.Instant.parse("2026-11-11T10:00:00Z").plusSeconds(sent.size.toLong()),
             editedAt = null,
             status = DeliveryStatus.SENT,
@@ -392,6 +444,26 @@ class FakeChatRepository(private val meId: String = "me") : ChatRepository {
 
     override suspend fun markRead(conversationId: String): AppResult<Unit> {
         markedRead += conversationId
+        return AppResult.Success(Unit)
+    }
+
+    val createdGroups = mutableListOf<Pair<String, List<String>>>()
+    val members: MutableMap<String, List<UserSummary>> = mutableMapOf()
+    val left = mutableListOf<String>()
+
+    override suspend fun createGroup(title: String, memberIds: List<String>): AppResult<String> {
+        failWith?.let { return AppResult.Failure(it) }
+        if (title.isBlank() || memberIds.isEmpty()) return AppResult.Failure(AppError.Validation("group", "invalid"))
+        createdGroups += title to memberIds
+        return AppResult.Success("group-${createdGroups.size}")
+    }
+
+    override suspend fun getMembers(conversationId: String): AppResult<List<UserSummary>> =
+        failWith?.let { AppResult.Failure(it) } ?: AppResult.Success(members[conversationId].orEmpty())
+
+    override suspend fun leave(conversationId: String): AppResult<Unit> {
+        failWith?.let { return AppResult.Failure(it) }
+        left += conversationId
         return AppResult.Success(Unit)
     }
 }

@@ -3,7 +3,7 @@ package com.yourcompany.musicsocial.data.chat.mapper
 import com.yourcompany.musicsocial.core.domain.model.DeliveryStatus
 import com.yourcompany.musicsocial.core.domain.model.MessageContent
 import com.yourcompany.musicsocial.data.chat.datasource.MessageDto
-import com.yourcompany.musicsocial.data.chat.datasource.MessageShareDto
+import com.yourcompany.musicsocial.data.chat.datasource.MessageSongDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -22,11 +22,37 @@ class MessageMappersTest {
     }
 
     @Test
-    fun `song share keeps the optional comment`() {
-        val message = dto(kind = MessageKind.SONG, body = "on repeat", share = MessageShareDto(songId = "song-1"))
-            .toDomainOrNull(emptyList())!!
+    fun `song share carries the song to play and the optional comment`() {
+        val song = MessageSongDto("itunes:42", "Kesariya", "Arijit Singh", artworkUrl = "https://is1.mzstatic.com/k.jpg", durationMs = 268_000)
+        val message = dto(kind = MessageKind.SONG, body = "on repeat", song = song).toDomainOrNull(emptyList())!!
 
-        assertEquals(MessageContent.SharedSong("song-1", "on repeat"), message.content)
+        val content = message.content as MessageContent.SharedSong
+        assertEquals("on repeat", content.comment)
+        assertEquals("itunes:42", content.song.id)
+        assertEquals("Kesariya", content.song.title)
+        assertEquals("Arijit Singh", content.song.artistNames)
+        // Never stored: looked up when played.
+        assertNull(content.song.previewUrl)
+    }
+
+    @Test
+    fun `sharing keeps only https links and cuts long text`() {
+        val stored = com.yourcompany.musicsocial.core.domain.model.Song(
+            id = "itunes:1",
+            title = "x".repeat(400),
+            artists = emptyList(),
+            albumTitle = null,
+            artworkUrl = "http://insecure.example/a.jpg",
+            durationMs = 1,
+            previewUrl = "https://audio-ssl.itunes.apple.com/clip.m4a",
+            externalUrl = "https://music.apple.com/x",
+            catalogRef = null,
+        ).toMessageSong()
+
+        assertEquals(300, stored.title.length)
+        assertEquals("Unknown artist", stored.artistNames)
+        assertNull(stored.artworkUrl)
+        assertEquals("https://music.apple.com/x", stored.externalUrl)
     }
 
     @Test
@@ -40,7 +66,7 @@ class MessageMappersTest {
     @Test
     fun `rows the client cannot represent are skipped instead of crashing`() {
         assertNull(dto(kind = "voice_note", body = null).toDomainOrNull(emptyList()))
-        assertNull(dto(kind = MessageKind.SONG, body = null, share = null).toDomainOrNull(emptyList()))
+        assertNull(dto(kind = MessageKind.SONG, body = null, song = null).toDomainOrNull(emptyList()))
     }
 
     @Test
@@ -55,7 +81,7 @@ class MessageMappersTest {
     private fun dto(
         kind: String = MessageKind.TEXT,
         body: String? = "hi",
-        share: MessageShareDto? = null,
+        song: MessageSongDto? = null,
         deletedAt: String? = null,
     ) = MessageDto(
         id = "m1",
@@ -66,7 +92,7 @@ class MessageMappersTest {
         body = body,
         createdAt = sentAt,
         deletedAt = deletedAt,
-        share = share,
+        song = song,
     )
 }
 

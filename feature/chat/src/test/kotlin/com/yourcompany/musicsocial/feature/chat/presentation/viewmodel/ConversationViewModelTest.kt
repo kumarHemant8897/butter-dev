@@ -13,6 +13,7 @@ import com.yourcompany.musicsocial.core.testing.fake.FakeAuthRepository
 import com.yourcompany.musicsocial.core.testing.fake.FakeChatRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -42,8 +43,36 @@ class ConversationViewModelTest {
         FakeAuthRepository(AuthState.SignedIn("me", null)),
         chats,
         SendTextMessageUseCase(chats),
+        playback,
         clock,
     )
+
+    private val playback = com.yourcompany.musicsocial.core.testing.fake.FakePlaybackController()
+
+    private fun shared(id: String, songId: String, at: String) = Message(
+        id, "c1", "u2",
+        MessageContent.SharedSong(com.yourcompany.musicsocial.core.domain.model.Song(songId, "Song $songId", emptyList(), null, null, 0, null, null, null), null),
+        Instant.parse(at), null, DeliveryStatus.SENT,
+    )
+
+    @Test
+    fun `tapping a shared song plays the thread's shared songs from it, oldest first`() {
+        chats.messages["c1"] = mutableListOf(
+            shared("m1", "itunes:1", "2026-11-11T10:00:00Z"),
+            message("m2", "me", "nice", "2026-11-11T10:01:00Z"),
+            shared("m3", "itunes:2", "2026-11-11T10:02:00Z"),
+        )
+        val viewModel = viewModel()
+
+        viewModel.onPlaySong("itunes:2")
+
+        val (queue, start) = playback.playRequests.single()
+        assertEquals(listOf("itunes:1", "itunes:2"), queue.map { it.id })
+        assertEquals(1, start)
+
+        viewModel.onPlaySong("itunes:2")
+        assertEquals(1, playback.toggleCount)
+    }
 
     @Test
     fun `history loads newest first, marks the thread read and knows whose messages are whose`() {
@@ -115,5 +144,71 @@ class ConversationViewModelTest {
 
         assertTrue(chats.sent.isEmpty())
         assertTrue(viewModel.uiState.value.messages.isEmpty())
+    }
+}
+
+class GroupChatTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val chats = FakeChatRepository(meId = "me")
+    private val users = com.yourcompany.musicsocial.core.testing.fake.FakeUserRepository(meId = "me")
+    private val auth = FakeAuthRepository(AuthState.SignedIn("me", null))
+    private fun person(id: String, name: String) = com.yourcompany.musicsocial.core.domain.model.UserProfile(id, id, name, null, null, 0, 0)
+
+    @Test
+    fun `new group lists the people I am connected with once each and creates the group`() {
+        users.followerLists["me"] = listOf(person("b", "Ben"), person("c", "Cara"))
+        users.followingLists["me"] = listOf(person("b", "Ben"), person("a", "Asha"))
+        val viewModel = NewGroupViewModel(auth, users, chats)
+        assertEquals(listOf("Asha", "Ben", "Cara"), viewModel.uiState.value.people.map { it.displayName })
+
+        viewModel.onTitleChange("  Weekend ")
+        assertFalse(viewModel.uiState.value.canCreate)
+        viewModel.onToggle("a")
+        viewModel.onToggle("c")
+        viewModel.onCreate()
+
+        assertEquals(listOf("Weekend" to listOf("a", "c")), chats.createdGroups.map { it.first to it.second.sorted() })
+        val opened = viewModel.uiState.value.created!!
+        assertTrue(opened.isGroup)
+        assertEquals("Weekend", opened.title)
+    }
+
+    @Test
+    fun `a group conversation names senders and can be left`() {
+        chats.members["g1"] = listOf(
+            com.yourcompany.musicsocial.core.domain.model.UserSummary("me", "me", "Hemant Kumar", null),
+            com.yourcompany.musicsocial.core.domain.model.UserSummary("u2", "riya", "Riya Sharma", null),
+        )
+        chats.messages["g1"] = mutableListOf(
+            Message("m1", "g1", "u2", MessageContent.Text("see you there"), Instant.parse("2026-11-11T10:00:00Z"), null, DeliveryStatus.SENT),
+        )
+        val viewModel = ConversationViewModel(
+            SavedStateHandle(
+                mapOf(
+                    ConversationViewModel.ARG_CONVERSATION_ID to "g1",
+                    ConversationViewModel.ARG_TITLE to "Weekend",
+                    ConversationViewModel.ARG_IS_GROUP to true,
+                ),
+            ),
+            auth,
+            chats,
+            SendTextMessageUseCase(chats),
+            com.yourcompany.musicsocial.core.testing.fake.FakePlaybackController(),
+            Clock.fixed(Instant.parse("2026-11-11T10:05:00Z"), ZoneOffset.UTC),
+        )
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isGroup)
+        assertEquals(2, state.members.size)
+        assertEquals("Riya", state.senderName(state.messages.single().senderId))
+
+        viewModel.onRequestLeave()
+        assertTrue(viewModel.uiState.value.isConfirmingLeave)
+        viewModel.onConfirmLeave()
+        assertEquals(listOf("g1"), chats.left)
+        assertTrue(viewModel.uiState.value.hasLeft)
     }
 }

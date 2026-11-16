@@ -14,6 +14,7 @@ import com.yourcompany.musicsocial.core.domain.usecase.ValidateBioUseCase
 import com.yourcompany.musicsocial.core.domain.usecase.ValidateDisplayNameUseCase
 import com.yourcompany.musicsocial.core.domain.usecase.ValidateUsernameUseCase
 import com.yourcompany.musicsocial.core.domain.usecase.Validated
+import com.yourcompany.musicsocial.feature.profile.presentation.avatar.AvatarImageReader
 import com.yourcompany.musicsocial.feature.profile.presentation.state.EditProfileUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,31 @@ class EditProfileViewModel @Inject constructor(
     private val validateUsername: ValidateUsernameUseCase,
     private val validateDisplayName: ValidateDisplayNameUseCase,
     private val validateBio: ValidateBioUseCase,
+    private val avatarImageReader: AvatarImageReader,
 ) : ViewModel() {
+
+    /**
+     * A photo was picked: shrink it, upload it and save it on the profile straight away (it does not
+     * wait for Save, like most apps). The other fields are untouched.
+     */
+    fun onPhotoPicked(uri: String) {
+        if (_uiState.value.isUploadingPhoto) return
+        _uiState.update { it.copy(isUploadingPhoto = true, photoError = null) }
+        viewModelScope.launch {
+            val jpeg = avatarImageReader.read(uri)
+            if (jpeg == null) {
+                _uiState.update { it.copy(isUploadingPhoto = false, photoError = AppError.Validation("avatar", "unreadable")) }
+                return@launch
+            }
+            userRepository.uploadAvatar(jpeg).fold(
+                onSuccess = { saved ->
+                    original = original?.copy(avatarUrl = saved.avatarUrl)
+                    _uiState.update { it.copy(isUploadingPhoto = false, avatarUrl = saved.avatarUrl) }
+                },
+                onFailure = { error -> _uiState.update { it.copy(isUploadingPhoto = false, photoError = error) } },
+            )
+        }
+    }
 
     private val _uiState = MutableStateFlow(EditProfileUiState())
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
@@ -60,6 +85,8 @@ class EditProfileViewModel @Inject constructor(
                             displayName = profile.displayName,
                             username = profile.username,
                             bio = profile.bio.orEmpty(),
+                            avatarName = profile.displayName,
+                            avatarUrl = profile.avatarUrl,
                             error = null,
                         )
                     }

@@ -28,7 +28,8 @@ data class Message(
 
 sealed interface MessageContent {
     data class Text(val body: String) : MessageContent
-    data class SharedSong(val songId: String, val comment: String?) : MessageContent
+    /** A catalogue song with display data; it plays through a fresh preview lookup. */
+    data class SharedSong(val song: Song, val comment: String?) : MessageContent
     data class SharedPlaylist(val playlistId: String, val comment: String?) : MessageContent
 
     /** A message that was deleted by its sender. Kept so the timeline does not shift. */
@@ -44,6 +45,6 @@ enum class DeliveryStatus { SENDING, SENT, DELIVERED, READ, FAILED }
 /** What the user is sending. Kept separate from [MessageContent] because a send cannot be "Deleted". */
 sealed interface OutgoingMessage {
     data class Text(val body: String) : OutgoingMessage
-    data class SongShare(val songId: String, val comment: String?) : OutgoingMessage
+    data class SongShare(val song: Song, val comment: String?) : OutgoingMessage
     data class PlaylistShare(val playlistId: String, val comment: String?) : OutgoingMessage
 }

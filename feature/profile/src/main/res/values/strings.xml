@@ -54,11 +54,38 @@
     <string name="profile_requested_title">Request sent</string>
     <string name="profile_requested_message">You\'ll see %1$s\'s music once they accept. You can message each other after that too.</string>
     <string name="profile_retry">Try again</string>
+    <string name="profile_more">More options for %1$s</string>
+    <string name="profile_cancel">Cancel</string>
+    <string name="profile_block">Block</string>
+    <string name="profile_unblock">Unblock</string>
+    <string name="profile_block_title">Block %1$s?</string>
+    <string name="profile_block_message">You\'ll stop following each other, and neither of you can send follow requests or direct messages. They won\'t be told.</string>
+    <string name="profile_unblock_title">Unblock %1$s?</string>
+    <string name="profile_unblock_message">You can follow and message each other again. Your old follows don\'t come back; send a new request if you want.</string>
+    <string name="profile_blocked_title">You blocked %1$s</string>
+    <string name="profile_blocked_message">You won\'t see each other in chats or get follow requests. Unblock any time.</string>
+    <string name="profile_report">Report</string>
+    <string name="profile_report_title">Report %1$s</string>
+    <string name="profile_report_details">What happened? (optional)</string>
+    <string name="profile_report_send">Send report</string>
+    <string name="profile_report_sent">Thanks. We\'ll review your report.</string>
+    <string name="report_reason_spam">Spam</string>
+    <string name="report_reason_harassment">Harassment or bullying</string>
+    <string name="report_reason_inappropriate">Inappropriate content</string>
+    <string name="report_reason_impersonation">Pretending to be someone else</string>
+    <string name="report_reason_other">Something else</string>
 
     <plurals name="people_handle_followers">
         <item quantity="one">@%1$s · %2$s follower</item>
         <item quantity="other">@%1$s · %2$s followers</item>
     </plurals>
+    <string name="follow_list_followers_title">%1$s\'s followers</string>
+    <string name="follow_list_following_title">%1$s follows</string>
+    <string name="follow_list_no_followers">No followers yet</string>
+    <string name="follow_list_no_followers_message">People appear here once a follow request is accepted.</string>
+    <string name="follow_list_no_following">Not following anyone yet</string>
+    <string name="follow_list_no_following_message">Accepted follow requests show up here.</string>
+    <string name="follow_list_you">%1$s (you)</string>
     <string name="people_title">Find your people</string>
     <string name="people_search_hint">Search by name or @username</string>
     <string name="people_suggested">New on Butter</string>
@@ -83,6 +110,8 @@
     <string name="profile_open">Open %1$s</string>
     <string name="profile_history">Listening history</string>
 
+    <string name="profile_change_photo">Change photo</string>
+    <string name="profile_photo_unreadable">That photo couldn\'t be used. Try another one.</string>
     <string name="profile_field_name">Your name</string>
     <string name="profile_field_username">Username</string>
     <string name="profile_field_bio">Bio</string>

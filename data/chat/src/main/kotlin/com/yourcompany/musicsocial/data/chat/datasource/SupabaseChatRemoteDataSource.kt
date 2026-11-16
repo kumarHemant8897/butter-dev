@@ -27,6 +27,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.UUID
@@ -137,7 +139,57 @@ internal class SupabaseChatRemoteDataSource @Inject constructor(
             }
         }.map { }
 
+    override suspend fun sendSongMessage(conversationId: String, clientId: String, comment: String?, song: MessageSongDto): AppResult<String> =
+        supabase.call(logger, "chat.sendSong") { client ->
+            val params = buildJsonObject {
+                put("target_conversation", conversationId)
+                put("client", clientId)
+                put("comment", comment)
+                put("song_id", song.songId)
+                put("title", song.title)
+                put("artist_names", song.artistNames)
+                put("album_title", song.albumTitle)
+                put("artwork_url", song.artworkUrl)
+                put("external_url", song.externalUrl)
+                put("duration_ms", song.durationMs)
+            }
+            client.postgrest.rpc("send_song_message", params).decodeAs<String>()
+        }
+
+    override suspend fun getMessage(messageId: String): AppResult<MessageDto?> =
+        supabase.call(logger, "chat.message") { client ->
+            client.from(MESSAGES).select(MESSAGE_COLUMNS) { filter { eq("id", messageId) } }.decodeSingleOrNull<MessageDto>()
+        }
+
     override fun currentUserId(): String? = supabase.clientOrNull()?.auth?.currentUserOrNull()?.id
+
+    override suspend fun createGroup(title: String, memberIds: List<String>): AppResult<String> =
+        supabase.call(logger, "chat.createGroup") { client ->
+            val params = buildJsonObject {
+                put("group_title", title)
+                put("member_ids", JsonArray(memberIds.map { JsonPrimitive(it) }))
+            }
+            client.postgrest.rpc("create_group_conversation", params).decodeAs<String>()
+        }
+
+    override suspend fun getMembers(conversationId: String): AppResult<List<MemberDto>> =
+        supabase.call(logger, "chat.members") { client ->
+            client.from(MEMBERS).select(Columns.raw("user_id,person:profiles(id,username,display_name,avatar_url)")) {
+                filter { eq("conversation_id", conversationId) }
+                order("joined_at", Order.ASCENDING)
+            }.decodeList<MemberDto>()
+        }
+
+    override suspend fun leave(conversationId: String): AppResult<Unit> =
+        supabase.call(logger, "chat.leave") { client ->
+            val me = client.requireUserId()
+            client.from(MEMBERS).delete {
+                filter {
+                    eq("conversation_id", conversationId)
+                    eq("user_id", me)
+                }
+            }
+        }.map { }
 
     @Serializable
     private data class ReadCursorRow(
@@ -149,7 +201,8 @@ internal class SupabaseChatRemoteDataSource @Inject constructor(
         const val MESSAGES = "messages"
         const val MEMBERS = "conversation_members"
         val MESSAGE_COLUMNS = Columns.raw(
-            "id,conversation_id,sender_id,client_id,kind,body,created_at,edited_at,deleted_at,share:message_shares(song_id,playlist_id)",
+            "id,conversation_id,sender_id,client_id,kind,body,created_at,edited_at,deleted_at," +
+                "song:message_songs(song_id,title,artist_names,album_title,artwork_url,external_url,duration_ms)",
         )
     }
 }

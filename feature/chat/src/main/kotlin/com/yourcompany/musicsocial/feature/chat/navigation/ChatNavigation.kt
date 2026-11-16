@@ -8,6 +8,8 @@ import androidx.navigation.compose.navigation
 import com.yourcompany.musicsocial.core.navigation.ChatListRoute
 import com.yourcompany.musicsocial.core.navigation.ChatsGraph
 import com.yourcompany.musicsocial.core.navigation.ConversationRoute
+import com.yourcompany.musicsocial.core.navigation.NewGroupRoute
+import com.yourcompany.musicsocial.feature.chat.presentation.screen.NewGroupRoute as NewGroupRouteScreen
 import com.yourcompany.musicsocial.feature.chat.presentation.screen.ChatListRoute as ChatListRouteScreen
 import com.yourcompany.musicsocial.feature.chat.presentation.screen.ConversationRoute as ConversationRouteScreen
 
@@ -19,6 +21,17 @@ fun NavGraphBuilder.chatsSection(navController: NavController, contentPadding: P
                 contentPadding = contentPadding,
                 onFindPeople = onFindPeople,
                 onOpenConversation = { route -> navController.navigate(route) },
+                onNewGroup = { navController.navigate(NewGroupRoute) },
+            )
+        }
+        composable<NewGroupRoute> {
+            NewGroupRouteScreen(
+                contentPadding = contentPadding,
+                onBack = { navController.popBackStack() },
+                // Replace "New group" with the new chat, so Back returns to the chat list.
+                onCreated = { route ->
+                    navController.navigate(route) { popUpTo<NewGroupRoute> { inclusive = true } }
+                },
             )
         }
     }

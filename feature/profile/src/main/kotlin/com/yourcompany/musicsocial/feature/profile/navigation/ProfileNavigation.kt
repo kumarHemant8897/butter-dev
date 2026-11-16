@@ -10,7 +10,9 @@ import com.yourcompany.musicsocial.core.navigation.ConversationRoute
 import com.yourcompany.musicsocial.core.navigation.SongListKind
 import com.yourcompany.musicsocial.core.navigation.SongListRoute
 import com.yourcompany.musicsocial.core.navigation.EditProfileRoute
+import com.yourcompany.musicsocial.core.navigation.FollowListRoute
 import com.yourcompany.musicsocial.core.navigation.FollowRequestsRoute
+import com.yourcompany.musicsocial.feature.profile.presentation.screen.FollowListRoute as FollowListRouteScreen
 import com.yourcompany.musicsocial.core.navigation.PeopleSearchRoute
 import com.yourcompany.musicsocial.core.navigation.ProfileGraph
 import com.yourcompany.musicsocial.core.navigation.ProfileRoute
@@ -37,6 +39,7 @@ fun NavGraphBuilder.profileSection(navController: NavController, contentPadding:
                 onOpenRequests = { navController.navigate(FollowRequestsRoute) },
                 onFindPeople = { navController.navigate(PeopleSearchRoute) },
                 onOpenPlaylist = { navController.navigate(it.toRoute()) },
+                onOpenFollowList = { navController.navigate(it) },
             )
         }
         composable<EditProfileRoute> {
@@ -63,6 +66,14 @@ fun NavGraphBuilder.peopleDestinations(
             onBack = { navController.popBackStack() },
             onOpenConversation = onOpenConversation,
             onOpenPlaylist = { navController.navigate(it.toRoute()) },
+            onOpenFollowList = { navController.navigate(it) },
+        )
+    }
+    composable<FollowListRoute> {
+        FollowListRouteScreen(
+            contentPadding = contentPadding,
+            onBack = { navController.popBackStack() },
+            onOpenProfile = { userId -> navController.navigate(UserProfileRoute(userId)) },
         )
     }
     composable<PeopleSearchRoute> {

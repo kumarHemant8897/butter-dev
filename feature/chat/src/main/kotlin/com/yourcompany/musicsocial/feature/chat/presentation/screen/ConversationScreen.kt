@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -47,6 +49,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.height
+import com.yourcompany.musicsocial.core.designsystem.component.Artwork
+import com.yourcompany.musicsocial.core.designsystem.component.ArtworkTint
 import com.yourcompany.musicsocial.core.designsystem.component.CircleIconButton
 import com.yourcompany.musicsocial.core.designsystem.component.LoadingIndicator
 import com.yourcompany.musicsocial.core.designsystem.component.UserAvatar
@@ -76,7 +81,25 @@ internal fun ConversationRoute(
     viewModel: ConversationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeSong by viewModel.activeSong.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
+    LaunchedEffect(state.hasLeft) { if (state.hasLeft) onBack() }
+    if (state.isMembersOpen) {
+        MembersSheet(state, onOpenProfile = { id -> viewModel.onHideMembers(); onOpenProfile(id) }, onLeave = viewModel::onRequestLeave, onDismiss = viewModel::onHideMembers)
+    }
+    if (state.isConfirmingLeave) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::onDismissLeave,
+            title = { Text(stringResource(R.string.group_leave_title, state.title)) },
+            text = { Text(stringResource(R.string.group_leave_message)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = viewModel::onConfirmLeave) {
+                    Text(stringResource(R.string.group_leave), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = viewModel::onDismissLeave) { Text(stringResource(R.string.group_cancel)) } },
+        )
+    }
     // Safety net under Realtime: a dropped socket on Wi-Fi must not leave the thread stale.
     LaunchedEffect(Unit) {
         while (true) {
@@ -89,12 +112,16 @@ internal fun ConversationRoute(
         contentPadding = contentPadding,
         actions = ConversationActions(
             onBack = onBack,
-            onOpenProfile = { state.otherUserId?.let(onOpenProfile) },
+            // Direct chat: the other person's profile. Group: the member list.
+            onOpenProfile = { if (state.isGroup) viewModel.onShowMembers() else state.otherUserId?.let(onOpenProfile) },
             onDraftChange = viewModel::onDraftChange,
             onSend = viewModel::onSend,
             onRetrySend = viewModel::onRetrySend,
             onRetryLoad = viewModel::onRetryLoad,
+            onPlaySong = viewModel::onPlaySong,
         ),
+        activeSongId = activeSong.first,
+        isActiveSongPlaying = activeSong.second,
     )
 }
 
@@ -107,6 +134,7 @@ internal data class ConversationActions(
     val onSend: () -> Unit = {},
     val onRetrySend: (String) -> Unit = {},
     val onRetryLoad: () -> Unit = {},
+    val onPlaySong: (String) -> Unit = {},
 )
 
 @Composable
@@ -115,6 +143,8 @@ internal fun ConversationScreen(
     contentPadding: PaddingValues,
     actions: ConversationActions,
     modifier: Modifier = Modifier,
+    activeSongId: String? = null,
+    isActiveSongPlaying: Boolean = false,
 ) {
     // consumeWindowInsets: the navigation bar inset is already in contentPadding, so the keyboard
     // padding adds only what the keyboard covers beyond it.
@@ -125,7 +155,7 @@ internal fun ConversationScreen(
                 state.isLoading && state.messages.isEmpty() -> LoadingIndicator(Modifier.align(Alignment.Center))
                 state.loadError != null -> AppErrorView(error = state.loadError, onRetry = actions.onRetryLoad)
                 state.messages.isEmpty() -> Text(
-                    stringResource(R.string.chat_empty_thread, state.title),
+                    stringResource(if (state.isGroup) R.string.chat_empty_group else R.string.chat_empty_thread, state.title),
                     style = MaterialTheme.typography.bodyMedium,
                     color = ButterTheme.colors.textSecondary,
                     modifier = Modifier.align(Alignment.Center).padding(Spacing.xl),
@@ -138,7 +168,32 @@ internal fun ConversationScreen(
                 ) {
                     val newestMineReadId = state.messages.firstOrNull { it.isMine && it.status == DeliveryStatus.READ }?.id
                     items(state.messages, key = { it.id }) { message ->
-                        Bubble(message, showSeen = message.id == newestMineReadId, onRetry = { actions.onRetrySend(message.id) })
+                        // One Column per item: with reverseLayout, separate children would put the name under the bubble.
+                        Column(Modifier.fillMaxWidth()) {
+                            // In a group, name the sender above other people's messages.
+                            if (state.isGroup && !message.isMine) {
+                                state.senderName(message.senderId)?.let { name ->
+                                    Text(
+                                        name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = Spacing.sm, top = Spacing.xs),
+                                    )
+                                }
+                            }
+                            val shared = message.content as? MessageContent.SharedSong
+                            if (shared != null) {
+                                SongBubble(
+                                    message = message,
+                                    shared = shared,
+                                    isPlaying = shared.song.id == activeSongId && isActiveSongPlaying,
+                                    showSeen = message.id == newestMineReadId,
+                                    onPlay = { actions.onPlaySong(shared.song.id) },
+                                )
+                            } else {
+                                Bubble(message, showSeen = message.id == newestMineReadId, onRetry = { actions.onRetrySend(message.id) })
+                            }
+                        }
                     }
                 }
             }
@@ -163,20 +218,34 @@ private fun Header(state: ConversationUiState, actions: ConversationActions) {
     ) {
         CircleIconButton(icon = AppIcons.Back, contentDescription = stringResource(R.string.chat_back), onClick = actions.onBack)
         Spacer(Modifier.width(Spacing.sm))
-        val profileLabel = stringResource(R.string.chat_open_profile, state.title)
+        val profileLabel = stringResource(if (state.isGroup) R.string.group_show_members else R.string.chat_open_profile, state.title)
+        val clickable = state.isGroup || state.otherUserId != null
         Row(
             Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(12.dp))
-                .then(
-                    if (state.otherUserId != null) Modifier.clickable(role = Role.Button, onClickLabel = profileLabel, onClick = actions.onOpenProfile) else Modifier,
-                )
+                .then(if (clickable) Modifier.clickable(role = Role.Button, onClickLabel = profileLabel, onClick = actions.onOpenProfile) else Modifier)
                 .padding(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            UserAvatar(name = state.title, imageUrl = null, size = 36.dp)
+            val other = state.members.firstOrNull { it.id == state.otherUserId }
+            UserAvatar(
+                name = state.title,
+                imageUrl = other?.avatarUrl,
+                size = 36.dp,
+                shape = if (state.isGroup) com.yourcompany.musicsocial.core.designsystem.theme.AppShapes.GroupAvatar else CircleShape,
+            )
             Spacer(Modifier.width(Spacing.sm))
-            Text(state.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column {
+                Text(state.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (state.isGroup && state.members.isNotEmpty()) {
+                    Text(
+                        pluralStringResource(R.plurals.group_members, state.members.size, state.members.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ButterTheme.colors.textSecondary,
+                    )
+                }
+            }
         }
     }
     Box(Modifier.fillMaxWidth().padding(top = 1.dp).background(ButterTheme.colors.divider).heightIn(min = 1.dp, max = 1.dp))
@@ -222,6 +291,94 @@ private fun Bubble(message: ThreadMessage, showSeen: Boolean, onRetry: () -> Uni
             meta,
             style = MaterialTheme.typography.labelSmall,
             color = if (failed) MaterialTheme.colorScheme.error else ButterTheme.colors.textSecondary,
+            modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 2.dp),
+        )
+    }
+}
+
+/** Group members (tap someone to open their profile) and Leave group. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun MembersSheet(state: ConversationUiState, onOpenProfile: (String) -> Unit, onLeave: () -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = ButterTheme.colors.surfaceSecondary) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = Spacing.lg)) {
+            Text(
+                stringResource(R.string.group_members_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+            )
+            LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                items(state.members, key = { it.id }) { member ->
+                    val isMe = member.id == state.myId
+                    com.yourcompany.musicsocial.core.designsystem.component.PersonRow(
+                        name = if (isMe) stringResource(R.string.group_you, member.displayName) else member.displayName,
+                        subtitle = "@${member.username}",
+                        avatarUrl = member.avatarUrl,
+                        onClick = if (isMe) null else ({ onOpenProfile(member.id) }),
+                    )
+                }
+            }
+            androidx.compose.material3.TextButton(onClick = onLeave, modifier = Modifier.padding(horizontal = Spacing.md)) {
+                Text(stringResource(R.string.group_leave), color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+/** A shared song: artwork, title and artist, a play button, and the optional comment under it. */
+@Composable
+private fun SongBubble(message: ThreadMessage, shared: MessageContent.SharedSong, isPlaying: Boolean, showSeen: Boolean, onPlay: () -> Unit) {
+    val mine = message.isMine
+    val song = shared.song
+    val playLabel = stringResource(if (isPlaying) R.string.chat_pause_song else R.string.chat_play_song, song.title)
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+        Column(
+            Modifier
+                .widthIn(max = 290.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(ButterTheme.colors.card)
+                .border(1.dp, if (mine) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) else ButterTheme.colors.divider, RoundedCornerShape(18.dp))
+                .clickable(role = Role.Button, onClickLabel = playLabel, onClick = onPlay)
+                .padding(Spacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Artwork(song.artworkUrl, null, RoundedCornerShape(10.dp), ArtworkTint.forKey(song.id), Modifier.size(56.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Column(Modifier.weight(1f, fill = false).widthIn(max = 160.dp)) {
+                    Text(song.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        song.artistNames,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ButterTheme.colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.width(Spacing.sm))
+                Box(
+                    Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painterResource(if (isPlaying) AppIcons.Pause else AppIcons.Play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+            shared.comment?.let {
+                Spacer(Modifier.height(Spacing.xs))
+                Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = Spacing.xs))
+            }
+        }
+        Text(
+            when (message.status) {
+                DeliveryStatus.SENDING -> stringResource(R.string.chat_sending)
+                else -> timeLabel(message.sentAt) + if (showSeen) " · " + stringResource(R.string.chat_seen) else ""
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = ButterTheme.colors.textSecondary,
             modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 2.dp),
         )
     }

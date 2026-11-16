@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.yourcompany.musicsocial.core.domain.model.LibraryKind
 import com.yourcompany.musicsocial.core.domain.playback.PlaybackController
 import com.yourcompany.musicsocial.core.domain.playback.PlaybackState
+import com.yourcompany.musicsocial.core.domain.model.ConversationSummary
+import com.yourcompany.musicsocial.core.domain.model.OutgoingMessage
 import com.yourcompany.musicsocial.core.domain.model.Playlist
+import com.yourcompany.musicsocial.core.domain.repository.ChatRepository
+import java.util.UUID
 import com.yourcompany.musicsocial.core.domain.repository.LibraryRepository
 import com.yourcompany.musicsocial.core.domain.repository.PlaylistRepository
 import com.yourcompany.musicsocial.core.domain.result.AppError
@@ -26,7 +30,15 @@ data class AddToPlaylistUi(
     val isCreating: Boolean = false,
     /** Title of the playlist the song was just added to, for a short confirmation. */
     val addedTo: String? = null,
+    /** Name of the chat the song was just shared into, for a short confirmation. */
+    val sharedWith: String? = null,
     val error: AppError? = null,
+)
+
+/** The "Share with" sheet. [conversations] null while loading. */
+data class ShareUi(
+    val isSheetOpen: Boolean = false,
+    val conversations: List<ConversationSummary>? = null,
 )
 
 /**
@@ -38,6 +50,7 @@ class PlayerViewModel @Inject constructor(
     private val playback: PlaybackController,
     private val library: LibraryRepository,
     private val playlists: PlaylistRepository,
+    private val chats: ChatRepository,
 ) : ViewModel() {
     val state: StateFlow<PlaybackState> = playback.state
 
@@ -113,7 +126,42 @@ class PlayerViewModel @Inject constructor(
     }
 
     /** The "Added to …" note was shown. */
-    fun onPlaylistMessageShown() = _playlistUi.update { it.copy(addedTo = null) }
+    fun onPlaylistMessageShown() = _playlistUi.update { it.copy(addedTo = null, sharedWith = null) }
+
+    // ---- share in chat ---------------------------------------------------------------------------
+
+    private val _shareUi = MutableStateFlow(ShareUi())
+    val shareUi: StateFlow<ShareUi> = _shareUi.asStateFlow()
+
+    /** Opens the "Share with" sheet with the user's chats, most recent first. */
+    fun onOpenShare() {
+        if (playback.state.value.song == null) return
+        _shareUi.value = ShareUi(isSheetOpen = true, conversations = null)
+        viewModelScope.launch {
+            when (val result = chats.getConversations()) {
+                is AppResult.Success -> _shareUi.update { it.copy(conversations = result.data) }
+                is AppResult.Failure -> {
+                    _shareUi.update { it.copy(isSheetOpen = false) }
+                    _playlistUi.update { it.copy(error = result.error) }
+                }
+            }
+        }
+    }
+
+    fun onDismissShare() = _shareUi.update { it.copy(isSheetOpen = false) }
+
+    /** Sends the playing song into [conversation]. One client id per tap, so a retry is never stored twice. */
+    fun onShareTo(conversation: ConversationSummary) {
+        val song = playback.state.value.song ?: return
+        _shareUi.update { it.copy(isSheetOpen = false) }
+        val name = conversation.title ?: conversation.otherUser?.displayName.orEmpty()
+        viewModelScope.launch {
+            when (val result = chats.sendMessage(conversation.id, OutgoingMessage.SongShare(song, comment = null), UUID.randomUUID().toString())) {
+                is AppResult.Success -> _playlistUi.update { it.copy(sharedWith = name, error = null) }
+                is AppResult.Failure -> _playlistUi.update { it.copy(error = result.error) }
+            }
+        }
+    }
 
     fun onToggleLike() = toggle(LibraryKind.LIKED)
 

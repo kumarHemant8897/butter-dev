@@ -16,12 +16,23 @@ data class Relationship(
     val status: FollowStatus,
     /** The other person follows the signed-in user. */
     val followsMe: Boolean,
+    /** The signed-in user blocked this person. (Being blocked by them is never revealed.) */
+    val blockedByMe: Boolean = false,
 ) {
     /** Liked and saved songs are visible to approved followers only (enforced by the database). */
-    val canSeeLibrary: Boolean get() = status == FollowStatus.FOLLOWING
+    val canSeeLibrary: Boolean get() = !blockedByMe && status == FollowStatus.FOLLOWING
 
-    /** A chat may start once a follow request was accepted in either direction (enforced by the database). */
-    val canMessage: Boolean get() = status == FollowStatus.FOLLOWING || followsMe
+    /** A chat may start once a follow request was accepted in either direction and nobody blocked the other (enforced by the database). */
+    val canMessage: Boolean get() = !blockedByMe && (status == FollowStatus.FOLLOWING || followsMe)
+}
+
+/** Why someone is reported. [code] matches the reports.reason CHECK constraint. */
+enum class ReportReason(val code: String) {
+    SPAM("spam"),
+    HARASSMENT("harassment"),
+    INAPPROPRIATE("inappropriate"),
+    IMPERSONATION("impersonation"),
+    OTHER("other"),
 }
 
 /** Someone asked to follow the signed-in user. */
@@ -40,6 +51,8 @@ data class ConversationSummary(
     val lastMessage: LastMessagePreview?,
     val unreadCount: Int,
     val updatedAt: Instant,
+    /** Everyone in the conversation, including the signed-in user. */
+    val memberCount: Int = 2,
 )
 
-data class LastMessagePreview(val senderId: String, val content: MessageContent)
+data class LastMessagePreview(val senderId: String, val content: MessageContent, val senderName: String? = null)

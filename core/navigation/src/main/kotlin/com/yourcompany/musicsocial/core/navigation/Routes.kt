@@ -62,4 +62,21 @@ object SongListKind {
  * One conversation. [title] shows while messages load; [otherUserId] (direct chats) lets the header
  * open that person's profile.
  */
-@Serializable data class ConversationRoute(val conversationId: String, val title: String, val otherUserId: String? = null)
+@Serializable data class ConversationRoute(
+    val conversationId: String,
+    val title: String,
+    val otherUserId: String? = null,
+    /** Group chats show who wrote each message and offer the member list. */
+    val isGroup: Boolean = false,
+)
+
+/** Pick people you are connected with and name a group chat. */
+@Serializable data object NewGroupRoute
+
+/** Followers or following of [userId]. [kind] is [FollowListKind]; [title] is the person's name. */
+@Serializable data class FollowListRoute(val userId: String, val kind: String, val title: String)
+
+object FollowListKind {
+    const val FOLLOWERS = "followers"
+    const val FOLLOWING = "following"
+}

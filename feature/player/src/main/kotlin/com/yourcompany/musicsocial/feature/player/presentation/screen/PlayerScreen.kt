@@ -93,9 +93,13 @@ internal fun PlayerRoute(contentPadding: PaddingValues, viewModel: PlayerViewMod
             creating = playlistUi.isCreating,
         )
     }
+    val shareUi by viewModel.shareUi.collectAsStateWithLifecycle()
+    if (shareUi.isSheetOpen) {
+        ShareSheet(shareUi.conversations, onPick = viewModel::onShareTo, onDismiss = viewModel::onDismissShare)
+    }
     // The confirmation is a short note, not a permanent line.
-    LaunchedEffect(playlistUi.addedTo) {
-        if (playlistUi.addedTo != null) {
+    LaunchedEffect(playlistUi.addedTo, playlistUi.sharedWith) {
+        if (playlistUi.addedTo != null || playlistUi.sharedWith != null) {
             kotlinx.coroutines.delay(ADDED_NOTE_MS)
             viewModel.onPlaylistMessageShown()
         }
@@ -109,11 +113,13 @@ internal fun PlayerRoute(contentPadding: PaddingValues, viewModel: PlayerViewMod
             isSaved = songId != null && songId in librarySongIds[LibraryKind.SAVED].orEmpty(),
             error = libraryError ?: playlistUi.error,
             addedTo = playlistUi.addedTo,
+            sharedWith = playlistUi.sharedWith,
         ),
         actions = PlayerActions(
             onToggleLike = viewModel::onToggleLike,
             onToggleSave = viewModel::onToggleSave,
             onAddToPlaylist = viewModel::onOpenAddToPlaylist,
+            onShare = viewModel::onOpenShare,
             onTogglePlay = viewModel::onTogglePlay,
             onNext = viewModel::onNext,
             onPrevious = viewModel::onPrevious,
@@ -138,6 +144,7 @@ internal data class PlayerActions(
     val onToggleLike: () -> Unit = {},
     val onToggleSave: () -> Unit = {},
     val onAddToPlaylist: () -> Unit = {},
+    val onShare: () -> Unit = {},
 )
 
 /** Whether the loaded song is in the user's liked and saved lists. */
@@ -147,6 +154,8 @@ internal data class PlayerLibraryState(
     val error: AppError? = null,
     /** Title of the playlist the song was just added to. */
     val addedTo: String? = null,
+    /** Name of the chat the song was just shared into. */
+    val sharedWith: String? = null,
 )
 
 @Composable
@@ -169,6 +178,7 @@ internal fun PlayerScreen(
     }
 
     val secondary = ButterTheme.colors.textSecondary
+    val shareLabel = stringResource(R.string.player_share)
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -225,9 +235,11 @@ internal fun PlayerScreen(
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        library.addedTo?.let { title ->
+        val note = library.addedTo?.let { stringResource(com.yourcompany.musicsocial.core.ui.R.string.playlist_added, it) }
+            ?: library.sharedWith?.let { stringResource(R.string.player_share_sent, it) }
+        note?.let { text ->
             Text(
-                stringResource(com.yourcompany.musicsocial.core.ui.R.string.playlist_added, title),
+                text,
                 style = MaterialTheme.typography.bodySmall,
                 color = ButterTheme.colors.live,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -261,7 +273,19 @@ internal fun PlayerScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(painterResource(AppIcons.Headphones), null, tint = ButterTheme.colors.live, modifier = Modifier.size(Dimens.iconSmall))
             Spacer(Modifier.width(Spacing.sm))
-            Text(stringResource(R.string.player_preview_notice), style = MaterialTheme.typography.labelMedium, color = ButterTheme.colors.live)
+            Text(
+                stringResource(R.string.player_preview_notice),
+                style = MaterialTheme.typography.labelMedium,
+                color = ButterTheme.colors.live,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryButton(
+                text = stringResource(R.string.player_share_short),
+                onClick = actions.onShare,
+                leadingIcon = AppIcons.Share,
+                size = ButtonSize.Compact,
+                modifier = Modifier.semantics { contentDescription = shareLabel },
+            )
         }
 
         state.error?.let { error ->

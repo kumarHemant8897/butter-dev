@@ -25,7 +25,31 @@ import java.time.Instant
 
 class UserRepositoryImplTest {
 
-    private val remote = mockk<UserRemoteDataSource> { every { currentUserId() } returns "me" }
+    private val remote = mockk<UserRemoteDataSource> {
+        every { currentUserId() } returns "me"
+        coEvery { getBlockedIds() } returns AppResult.Success(emptySet())
+    }
+
+    @Test
+    fun `someone I blocked is reported as blocked and left out of search`() = runTest {
+        coEvery { remote.getBlockedIds() } returns AppResult.Success(setOf("id-spam"))
+        coEvery { remote.searchProfiles("sa", null, 20) } returns AppResult.Success(listOf(dto("spam").copy(id = "id-spam"), dto("sam")))
+
+        assertEquals(Relationship(FollowStatus.NONE, followsMe = false, blockedByMe = true), repository.getRelationship("id-spam").getOrNull())
+        assertEquals(listOf("sam"), repository.searchProfiles("sa", PageRequest(limit = 20)).getOrNull()!!.items.map { it.username })
+    }
+
+    @Test
+    fun `report trims details and refuses overly long ones before the network`() = runTest {
+        coEvery { remote.insertReport("u2", "spam", "links") } returns AppResult.Success(Unit)
+
+        assertEquals(AppResult.Success(Unit), repository.report("u2", com.yourcompany.musicsocial.core.domain.model.ReportReason.SPAM, "  links "))
+        assertEquals(
+            AppResult.Failure(AppError.Validation("details", "too_long")),
+            repository.report("u2", com.yourcompany.musicsocial.core.domain.model.ReportReason.OTHER, "x".repeat(1001)),
+        )
+        coVerify(exactly = 1) { remote.insertReport(any(), any(), any()) }
+    }
     private val repository = UserRepositoryImpl(remote)
 
     private fun dto(username: String, bio: String? = "hi") =

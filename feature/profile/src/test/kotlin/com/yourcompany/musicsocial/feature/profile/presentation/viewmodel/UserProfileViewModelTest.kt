@@ -205,3 +205,112 @@ class FollowRequestsViewModelTest {
         assertEquals(AppError.Network.Unavailable, state.actionError)
     }
 }
+
+class FollowListViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val users = FakeUserRepository(meId = "me")
+    private fun person(id: String) = UserProfile(id, "user$id", "User $id", null, null, 0, 0)
+
+    private fun viewModel(kind: String) = FollowListViewModel(
+        SavedStateHandle(mapOf(FollowListViewModel.ARG_USER_ID to "u2", FollowListViewModel.ARG_KIND to kind, FollowListViewModel.ARG_TITLE to "Luna")),
+        users,
+        com.yourcompany.musicsocial.core.testing.fake.FakeAuthRepository(com.yourcompany.musicsocial.core.domain.model.AuthState.SignedIn("me", null)),
+    )
+
+    @Test
+    fun `followers and following load the right list and know which row is me`() {
+        users.followerLists["u2"] = listOf(person("a"), person("me"))
+        users.followingLists["u2"] = listOf(person("b"))
+
+        val followers = viewModel(com.yourcompany.musicsocial.core.navigation.FollowListKind.FOLLOWERS).uiState.value
+        assertTrue(followers.isFollowers)
+        assertEquals(listOf("a", "me"), followers.people.map { it.id })
+        assertEquals("me", followers.myId)
+
+        val following = viewModel(com.yourcompany.musicsocial.core.navigation.FollowListKind.FOLLOWING).uiState.value
+        assertFalse(following.isFollowers)
+        assertEquals(listOf("b"), following.people.map { it.id })
+    }
+
+    @Test
+    fun `a failure shows the error and retry loads`() {
+        users.failWith = AppError.Network.Unavailable
+        val viewModel = viewModel(com.yourcompany.musicsocial.core.navigation.FollowListKind.FOLLOWERS)
+        assertEquals(AppError.Network.Unavailable, viewModel.uiState.value.error)
+
+        users.failWith = null
+        users.followerLists["u2"] = listOf(person("a"))
+        viewModel.onRetry()
+        assertEquals(1, viewModel.uiState.value.people.size)
+    }
+}
+
+class BlockAndReportTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val luna = UserProfile("u2", "luna.waves", "Luna Waves", null, null, 7, 3)
+    private val users = FakeUserRepository(meId = "me", initialProfiles = listOf(luna))
+    private val library = FakeLibraryRepository(meId = "me")
+
+    private fun viewModel() = UserProfileViewModel(
+        SavedStateHandle(mapOf(UserProfileViewModel.ARG_USER_ID to "u2")),
+        users,
+        library,
+        com.yourcompany.musicsocial.core.testing.fake.FakePlaylistRepository(meId = "me"),
+        FakeChatRepository(meId = "me"),
+        FakePlaybackController(),
+    )
+
+    private fun content(viewModel: UserProfileViewModel) = viewModel.uiState.value as UserProfileUiState.Content
+
+    @Test
+    fun `blocking asks first, ends the follow and hides their songs and the Message button`() {
+        users.following += "u2"
+        users.followers += "u2"
+        library.songs["u2" to LibraryKind.LIKED] = mutableListOf(Song("itunes:1", "Song", emptyList(), null, null, 0, null, null, null))
+        val viewModel = viewModel()
+        assertTrue(content(viewModel).relationship.canMessage)
+
+        viewModel.onShowDialog(com.yourcompany.musicsocial.feature.profile.presentation.state.ProfileDialog.BLOCK)
+        assertEquals(com.yourcompany.musicsocial.feature.profile.presentation.state.ProfileDialog.BLOCK, content(viewModel).dialog)
+        viewModel.onConfirmBlock()
+
+        val state = content(viewModel)
+        assertTrue(state.relationship.blockedByMe)
+        assertFalse(state.relationship.canMessage)
+        assertFalse(state.relationship.canSeeLibrary)
+        assertTrue(state.library.liked.isEmpty())
+        assertFalse("u2" in users.following)
+        assertFalse("u2" in users.followers)
+    }
+
+    @Test
+    fun `unblocking makes them followable again, without restoring the old follow`() {
+        users.blocked += "u2"
+        val viewModel = viewModel()
+        assertTrue(content(viewModel).relationship.blockedByMe)
+
+        viewModel.onConfirmUnblock()
+
+        val relationship = content(viewModel).relationship
+        assertFalse(relationship.blockedByMe)
+        assertEquals(FollowStatus.NONE, relationship.status)
+    }
+
+    @Test
+    fun `a report is sent with its reason and details and closes the form`() {
+        val viewModel = viewModel()
+        viewModel.onShowDialog(com.yourcompany.musicsocial.feature.profile.presentation.state.ProfileDialog.REPORT)
+
+        viewModel.onSendReport(com.yourcompany.musicsocial.core.domain.model.ReportReason.HARASSMENT, "mean messages")
+
+        assertEquals(listOf(Triple("u2", com.yourcompany.musicsocial.core.domain.model.ReportReason.HARASSMENT, "mean messages")), users.reports)
+        assertNull(content(viewModel).dialog)
+        assertTrue(content(viewModel).reportSent)
+    }
+}

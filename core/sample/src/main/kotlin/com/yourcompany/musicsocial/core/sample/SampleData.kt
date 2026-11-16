@@ -104,7 +104,7 @@ object SampleData {
     val onlineUserIds: Set<String> = setOf(eli.id, june.id)
 
     val conversations: List<Conversation> = listOf(
-        direct("conv-eli", eli, MessageContent.SharedSong(nightDrive.id, null), eli.id, "2026-11-09T21:39:00Z", unread = 2),
+        direct("conv-eli", eli, MessageContent.SharedSong(nightDrive, null), eli.id, "2026-11-09T21:39:00Z", unread = 2),
         direct("conv-june", june, MessageContent.Text("ok but track 4 changed my brain"), june.id, "2026-11-09T21:32:00Z", unread = 1),
         group("conv-after-hours", "the after hours club", listOf(eli, june, maya), MessageContent.Text("who's still awake? \uD83C\uDF19"), eli.id, "2026-11-09T21:28:00Z"),
         direct("conv-maya", maya, MessageContent.Text("this whole album is a mood"), me.id, "2026-11-09T20:54:00Z"),

@@ -22,6 +22,12 @@ data class EditProfileUiState(
     val error: AppError? = null,
     /** Set once the profile was saved; the screen then navigates back. */
     val isSaved: Boolean = false,
+    /** Name and current photo, for the avatar at the top of the form. */
+    val avatarName: String = "",
+    val avatarUrl: String? = null,
+    val isUploadingPhoto: Boolean = false,
+    /** The photo could not be read, or the upload failed. */
+    val photoError: AppError? = null,
 ) {
     /** Whether the form could not be loaded at all (nothing to edit). */
     val loadFailed: Boolean get() = isLoading && error != null

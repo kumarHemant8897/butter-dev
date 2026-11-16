@@ -26,6 +26,10 @@ interface UserRemoteDataSource {
 
     suspend fun getRequestedIds(): AppResult<Set<String>>
 
+    suspend fun getFollowers(userId: String, limit: Int): AppResult<List<ProfileDto>>
+
+    suspend fun getFollowing(userId: String, limit: Int): AppResult<List<ProfileDto>>
+
     /** Follow rows between the signed-in user and [userId], in either direction. */
     suspend fun getFollowsBetween(userId: String): AppResult<List<FollowEdgeDto>>
 
@@ -45,6 +49,17 @@ interface UserRemoteDataSource {
     suspend fun acceptFollowRequest(requesterId: String): AppResult<Boolean>
 
     suspend fun unfollow(followeeId: String): AppResult<Unit>
+
+    suspend fun insertBlock(blockedId: String): AppResult<Unit>
+
+    suspend fun deleteBlock(blockedId: String): AppResult<Unit>
+
+    suspend fun getBlockedIds(): AppResult<Set<String>>
+
+    suspend fun insertReport(targetUserId: String, reason: String, details: String?): AppResult<Unit>
+
+    /** Stores [jpeg] under avatars/<my id>/ and returns its public address. */
+    suspend fun uploadAvatar(jpeg: ByteArray, fileName: String): AppResult<String>
 
     /** The signed-in user's id, or null when signed out. */
     fun currentUserId(): String?

@@ -59,6 +59,9 @@ import com.yourcompany.musicsocial.core.designsystem.component.ButtonSize
 import com.yourcompany.musicsocial.core.designsystem.component.PersonRow
 import com.yourcompany.musicsocial.core.domain.model.LibraryKind
 import com.yourcompany.musicsocial.core.domain.model.Playlist
+import com.yourcompany.musicsocial.core.domain.model.UserProfile
+import com.yourcompany.musicsocial.core.navigation.FollowListKind
+import com.yourcompany.musicsocial.core.navigation.FollowListRoute
 import com.yourcompany.musicsocial.core.ui.component.CreatePlaylistDialog
 import com.yourcompany.musicsocial.core.ui.error.toErrorCopy
 import com.yourcompany.musicsocial.feature.profile.presentation.components.LibraryLists
@@ -74,6 +77,7 @@ internal fun ProfileRoute(
     onOpenRequests: () -> Unit,
     onFindPeople: () -> Unit,
     onOpenPlaylist: (Playlist) -> Unit,
+    onOpenFollowList: (FollowListRoute) -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uriHandler = LocalUriHandler.current
@@ -99,6 +103,8 @@ internal fun ProfileRoute(
             onOpenUrl = uriHandler::openUri,
             onOpenPlaylist = onOpenPlaylist,
             onNewPlaylist = viewModel::onNewPlaylist,
+            onOpenFollowers = { onOpenFollowList(FollowListRoute(it.id, FollowListKind.FOLLOWERS, it.displayName)) },
+            onOpenFollowing = { onOpenFollowList(FollowListRoute(it.id, FollowListKind.FOLLOWING, it.displayName)) },
         ),
     )
     (state as? ProfileUiState.Content)?.takeIf { it.isCreatePlaylistOpen }?.let { content ->
@@ -122,6 +128,8 @@ internal data class ProfileActions(
     val onOpenUrl: (String) -> Unit = {},
     val onOpenPlaylist: (Playlist) -> Unit = {},
     val onNewPlaylist: () -> Unit = {},
+    val onOpenFollowers: (UserProfile) -> Unit = {},
+    val onOpenFollowing: (UserProfile) -> Unit = {},
 )
 
 /** The signed-in user's own profile, adapted from the Figma "Listener profile" frame. */
@@ -167,8 +175,16 @@ private fun ProfileContent(
                 avatarUrl = profile.avatarUrl,
                 bio = profile.bio,
                 stats = listOf(
-                    ProfileStat(formatCompactCount(profile.followerCount), pluralStringResource(R.plurals.profile_followers, profile.followerCount)),
-                    ProfileStat(formatCompactCount(profile.followingCount), stringResource(R.string.profile_following)),
+                    ProfileStat(
+                        formatCompactCount(profile.followerCount),
+                        pluralStringResource(R.plurals.profile_followers, profile.followerCount),
+                        onClick = if (sample == null) ({ actions.onOpenFollowers(profile) }) else null,
+                    ),
+                    ProfileStat(
+                        formatCompactCount(profile.followingCount),
+                        stringResource(R.string.profile_following),
+                        onClick = if (sample == null) ({ actions.onOpenFollowing(profile) }) else null,
+                    ),
                 ),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

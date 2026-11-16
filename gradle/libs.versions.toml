@@ -2,7 +2,8 @@
 # Build tooling
 androidGradlePlugin = "9.5.1"
 kotlin = "2.4.21"
-ksp = "2.3.13"
+# Pinned: 2.3.13 drops Hilt output in parallel builds (google/ksp#3286).
+ksp = "2.3.12"
 
 # Android SDK levels
 compileSdk = "37"

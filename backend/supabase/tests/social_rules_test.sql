@@ -144,3 +144,52 @@ end $$;
 
 reset role;
 select 'social rules: all checks passed' as result;
+
+-- Song sharing (migration 9) -------------------------------------------------------------------
+-- Asha shares a song with Ben; a retry returns the same message; Ben sees it; Cara does not.
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', false);
+do $$
+declare first_id uuid; second_id uuid; conversation uuid := current_setting('test.conversation')::uuid;
+begin
+  first_id := public.send_song_message(conversation, 'd0000000-0000-4000-8000-000000000002', 'on repeat', 'itunes:1635014240',
+    'Kesariya', 'Arijit Singh', null, 'https://is1.mzstatic.com/k.jpg', null, 268000);
+  second_id := public.send_song_message(conversation, 'd0000000-0000-4000-8000-000000000002', 'on repeat', 'itunes:1635014240',
+    'Kesariya', 'Arijit Singh', null, 'https://is1.mzstatic.com/k.jpg', null, 268000);
+  if first_id is null or first_id <> second_id then raise exception 'a retried song share was stored twice'; end if;
+  if (select count(*) from public.message_songs) <> 1 then raise exception 'the shared song was not stored once'; end if;
+
+  -- A song cannot be attached to a text message, or to someone else's message.
+  begin
+    insert into public.message_songs (message_id, song_id, title, artist_names)
+    select m.id, 'itunes:9', 'x', 'y' from public.messages m where m.kind = 'text' limit 1;
+    raise exception 'a song was attached to a text message';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+select set_config('request.jwt.claim.sub', 'b0000000-0000-4000-8000-00000000000b', false);
+do $$
+declare row record;
+begin
+  if (select title from public.message_songs) <> 'Kesariya' then raise exception 'the recipient cannot see the shared song'; end if;
+  select * into row from public.my_conversations();
+  if row.last_kind <> 'song' or row.last_song_title <> 'Kesariya' or row.last_body <> 'on repeat' then
+    raise exception 'chat list does not show the shared song: % / % / %', row.last_kind, row.last_song_title, row.last_body;
+  end if;
+end $$;
+
+select set_config('request.jwt.claim.sub', 'c0000000-0000-4000-8000-00000000000c', false);
+do $$
+begin
+  if exists (select 1 from public.message_songs) then raise exception 'a stranger saw a shared song'; end if;
+  begin
+    perform public.send_song_message(current_setting('test.conversation')::uuid, 'd0000000-0000-4000-8000-000000000003', null,
+      'itunes:1', 'x', 'y');
+    raise exception 'a stranger sent into someone else''s conversation';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+reset role;
+select 'song sharing: all checks passed' as result;
