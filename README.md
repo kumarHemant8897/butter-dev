@@ -3,14 +3,32 @@
 A music-first social app for Android: listen, follow friends, swap songs in chat and find new music together.
 Built with Kotlin, Jetpack Compose and Supabase. Visual language: **Afterglow** (dark, violet for action, lime for presence).
 
-> Status: **Phase 2**. Sign-up, sign-in, real profiles, Edit profile and follow/unfollow work against a local Supabase stack. Home, Discover
-> content, Player and Chats still show clearly labelled **sample data**; playback and chat are not implemented yet.
-> See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works.
+> Status: **Phase 4 done, in testing.** A signed test build (`v0.1.0`) runs against a hosted Supabase project and is being
+> shared with testers. Push notifications are next. See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md)
+> for exactly what works and what was verified on a device.
 
-## Planned features
+## Screenshots
 
-Music playback (Media3), profiles and following, discovery, real-time one-to-one and group chat with song sharing,
-playlists, notifications, settings. Order and scope: [docs/ROADMAP.md](docs/ROADMAP.md).
+| Home | Discover | Player |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240" alt="Home: greeting, search and the Trending in India chart"> | <img src="docs/screenshots/discover.jpg" width="240" alt="Discover: search, top songs and the Bollywood chart"> | <img src="docs/screenshots/player.jpg" width="240" alt="Player: album art, controls, like, save and share"> |
+| **Chats** | **Conversation** | **Profile** |
+| <img src="docs/screenshots/chats.jpg" width="240" alt="Chats list with the mini player"> | <img src="docs/screenshots/chat.jpg" width="240" alt="A one-to-one conversation"> | <img src="docs/screenshots/profile.jpg" width="240" alt="Your profile with follow requests, playlists and liked songs"> |
+
+Captured on a moto g34 (Android 15) with the release build and test accounts. Album art and 30-second previews come from
+iTunes; songs open in Apple Music.
+
+## Features
+
+- **Music:** Apple Music's India charts, Bollywood chart, artist pages and song search (iTunes Search API). 30-second
+  previews with a full player, mini player, queue, shuffle and repeat. Playback continues in the background with
+  lock-screen and notification controls.
+- **Library:** like and save songs, and create playlists. Approved followers can see them.
+- **People:** search, profiles, follow requests that need approval, followers/following lists, profile photos.
+- **Chat:** real-time one-to-one and group chats. Share a song into a chat and play it from there.
+- **Safety:** block and report people. Database rules (Row Level Security) decide who can see and send what; they are
+  tested in `backend/supabase/tests/`.
+- **Coming next:** push notifications, password reset, account deletion. Order and scope: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Technology
 
@@ -22,7 +40,8 @@ playlists, notifications, settings. Order and scope: [docs/ROADMAP.md](docs/ROAD
 | Backend | Supabase (Postgres, Auth, Realtime, Storage) through the community `supabase-kt` client |
 | Local data | Room (cache), Preferences DataStore (settings) |
 | Networking | OkHttp (shared client), kotlinx.serialization. Retrofit is in the version catalog but unused until a non-Supabase REST API exists |
-| Images / Playback | Coil 3 / AndroidX Media3 (declared in the catalog, applied in Phase 3) |
+| Images / Playback | Coil 3 / AndroidX Media3 (ExoPlayer plus a `MediaSessionService` for background playback) |
+| Music catalogue | iTunes Search API and Apple's chart feeds (India storefront); previews are streamed, never stored |
 | Tests | JUnit 4, MockK, Turbine, Compose UI Test |
 | Build | Gradle 9.8 (Kotlin DSL), AGP 9.5, version catalog, convention plugins in `build-logic/` |
 
